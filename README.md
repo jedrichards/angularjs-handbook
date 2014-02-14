@@ -6,10 +6,10 @@
    1. Module lifecycle
    2. Module creation 
    3. Module retrieval
-2. Module objects
-   1. Dependancy injection
-      1. Inferred dependancy syntax
-      2. Inline annotation dependancy syntax
+2. Module components
+   1. Component dependancy injection
+      1. Inferred syntax
+      2. Inline annotation syntax
    2. Constants
    3. Config
    4. Run
@@ -19,76 +19,85 @@
 
 ## Modules
 
-A module is a logical collection of application objects. They can contain nested child modules, services, controllers, filters, directives, constants and simple values.
+A module is a logical collection of application components. They can contain nested child modules, services, controllers, filters, directives, constants and simple values.
 
-Modules can be organised based on type (i.e. a module containing only controllers) or by app feature (i.e. a module containing a variety objects related to a particular site section) - pick whichever way works for your project. 
+Modules can be organised based on type (i.e. a module containing only controllers) or by app feature (i.e. a module containing a variety of components related to a particular site section) - pick whichever way works for your project. 
 
 ### Module lifecycle
 
 Modules have two distinct phases in their lifecycle:
 
-1. The configuration phase. Constants are set and module objects are registered and configured.
-2. The run phase. Module objects are instantiated and injected with dependancies as needed.
+1. The configuration phase. Constants are set and module components are registered and configured.
+2. The run phase. Module components are instantiated and injected with dependancies as needed.
 
 ### Module creation
 
 Modules are created by defining the module name and an array of dependancies on other modules:
 
-	angular.module("app",["services","controllers"]);
+```
+angular.module("app",["services","controllers"]);
+```
 
 ### Module retrieval 
 
 Once created, modules can be retrieved later on by just passing in a single parameter, the module name:
 
-	var myModule = angular.module("app");
+```
+var myModule = angular.module("app");
+```
 
-## Module objects
+## Module components
 
-These are the various decoupled objects that are defined on the module. They include services, controllers, directives and other Angular module object types. More on these later on.
+These are the various decoupled components that are registered on the module. They include services, controllers, directives and other Angular component types (more on these later on).
 
-Module objects are defined on the module during the configuration phase and their dependencies are created and injected later on during the run phase, therefore they can be defined in any order.
+Module components are registered during the configuration phase and instantiated and injected with dependancies later on during the run phase, therefore they can be registered in any order.
 
-Each module object is defined together with a unique name which is used to resolve dependancy injections. Therefore module object names must be unique across the entire app.
+Each component is defined together with a unique name which is used to resolve dependancy injections. Therefore module component names must be unique across the entire app.
 
-A module object can be created as follows:
+A module component can be registered as follows:
 
-    myModule.service("name",ConstructorFunction);
+```
+myModule.service("name",ConstructorFunction);
+```
 
-The module creation syntax also supports method chaining. This is used when defining multiple module objects in one file. However it's generally a good idea to organise module objects into folders and individual files.
+During component registration the constructor function or "recipe" for creating the component at a later date is passed in but it is not invoked. Components are instantiated by the framework later on lazily (on demand) during the run phase.
 
-Creating multiple module objects with chaining:
+The registration syntax also supports method chaining. This is used when defining multiple components in one file. However it's generally a good idea to organise components into folders and individual files.
 
-	angular.module("app")
-		.service("apiService",ConstructorFunction)
-		.controller("HomeCtrl",ConstructorFunction);
+```
+angular.module("app")
+    .service("apiService",ConstructorFunction)
+    .controller("HomeCtrl",ConstructorFunction)
+    .controller("HeaderCtrl",ConstructorFunction);
+```
 
-### Dependancy injection
+### Component dependancy injection
 
-A key feature of AngularJS is the way that module objects are only instantiated as needed with their dependancies injected dynamically at runtime. This makes writing testable code easier as modules and module objects can be created in isolation and injected with mock/stub collaborators during a test.
+A key feature of AngularJS is the way that module components are only instantiated as needed with their dependancies injected dynamically during the run phase. This makes writing testable code easier as modules and components can be created in isolation and injected with mock/stub dependancies during a test.
 
-All dependancy names are combined into one app wide namespace. Therefore objects defined in one module are available for injection in any other module.
+All dependancy names are combined into one app wide namespace. Therefore components registered in one module are available for injection in any other module.
 
-DI occurs when a module object is created on demand by the framework. There are two main types of DI syntax.
+DI occurs when a component is created on demand by the framework. There are two main types of DI syntax.
 
-#### Inferred dependancy syntax
+#### Inferred syntax
 
-This is where the framework infers the dependancies from the function parameter names. This is an efficient syntax but it will fail once the code has been minified since this will typically rename function parameters and destroy the mappings:
+This is where the framework infers the dependancies from the function parameter names. This is a terse syntax but it will fail once the code has been minified since this will typically rename function parameters and destroy the mappings:
 
-```javascript
+```
 angular.module("app")
     .service("foo",function ($http,API,API_KEY) {
-        // The AngularJS Core $http object and custom constants
+        // The AngularJS Core $http component and the custom constants
         // API and API_KEY will be injected here and available
         // for use in "foo" service.
         return function () {};
     });
 ```
 
-#### Inline annotation dependancy syntax
+#### Inline annotation syntax
 
-In this syntax dependancy names are hardcoded as strings into an ordered array along with the object function itself as the last element. This syntax is functionally equivalent to the inferred syntax above and resilient to minification although arguably more verbose and harder to maintain.
+In this syntax dependancy names are hardcoded as strings into an ordered array along with the component function itself as the last element. This syntax is functionally equivalent to the inferred syntax above and resilient to minification although arguably more verbose and harder to maintain.
 
-```javascript
+```
 angular.module("app")
     .service("foo",["$http","API","API_KEY",function ($http,API,API_KEY) {
         return function () {};
@@ -99,39 +108,56 @@ angular.module("app")
 
 Module constants can be set via the module `constant` method. These define immutable values that are then available for DI in both the configuration and run module phases.
 
-	angular.module("app")
-	
-		.constant("API","/api/v1/")
-		.constant("API_KEY","940e12e5eaeb4e1baf964e45fc946498")
-		.constant("ERROR_MESSAGES",{
-		    "500": "Oh no, something has broken",
-		    "403": "You need to be logged in to do that"
-		});
+```
+angular.module("app")
+	.constant("API","/api/v1/")
+	.constant("API_KEY","940e12e5eaeb4e1baf964e45fc946498")
+	.constant("ERROR_MESSAGES",{
+	    "500": "Oh no, something has broken",
+	    "403": "You need to be logged in to do that"
+	});
+```
 
 ### Config
 
-This is code to be run only during the configuration phase. Provider objects can be injected into a config module object and configured at will. Constants are the only other sort of object that may be injected during config:
+This is code to be run only during the configuration phase. Components can be injected into a config block and configured at will. Constants and providers are the only other sort of component that may be injected during config:
 
-    angular.module("app")
-    
-        .config(function (API,API_KEY,apiService) {
-            apiService.base = API;
-            apiService.key = API_KEY;
-        );
+```
+angular.module("app")
+    .config(function (API,API_KEY,apiService) {
+        apiService.base = API;
+        apiService.key = API_KEY;
+    );
+```
 
 ### Run
 
-This is code to be run after the configuration phase but before the module at large kicks into gear. This is where you can bootstrap your app if required. It is conceptually similar to an application `main` function or primary entry point but on a per module basis and multiple `run` objects can be defined.
+This is code to be run after the configuration phase but before the module at large kicks into gear. This is where you can bootstrap your app if required. It is conceptually similar to an application's `main` function or primary entry point - the difference being that they are run on a per module basis and there can be multiple run blocks.
 
-For example to expose the time at which the app booted up on the root view scope:
+For example to expose the time at which the app started-up on the root view scope:
 
-    angular.module("app")
-        
-        .run(function ($rootScope) {
-            $rootScope.appStartTime = new Date();
-        });
+```
+angular.module("app") 
+    .run(function ($rootScope) {
+        $rootScope.appStartTime = new Date();
+    });
+```
 
 ### Services
+
+AngularJS services are singleton components that can be used to:
+
+- Persist and share data between components
+- Provide an interface for accessing/loading that data
+- Containers for reusable chunks of logic (something like the Commands pattern)
+
+Services can be registered on a module in a number of ways.
+
+#### The service method
+
+#### The factory method
+
+#### The provider method
 
 ### Controllers
 
@@ -181,6 +207,8 @@ Custom filters can also be defined via the `filter` method. The below is a simpl
 - DON'T return HTML markup from filters, they should just operate abstractly on data
 
 Documentation: http://docs.angularjs.org/guide/filter
+
+## Views
 
 ## Building AngularJS Apps
 
