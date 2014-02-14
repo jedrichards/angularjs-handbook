@@ -59,9 +59,7 @@ The module creation syntax also supports method chaining. This is used when defi
 Creating multiple module objects with chaining:
 
 	angular.module("app")
-		
 		.service("apiService",ConstructorFunction)
-		
 		.controller("HomeCtrl",ConstructorFunction);
 
 ### Dependancy injection
@@ -75,23 +73,27 @@ DI occurs when a module object is created on demand by the framework. There are 
 #### Inferred dependancy syntax
 
 This is where the framework infers the dependancies from the function parameter names. This is an efficient syntax but it will fail once the code has been minified since this will typically rename function parameters and destroy the mappings:
-    
-    angular.module("app")
-    
-        .service("foo",function ($http) {
-            // The Angular core $http object will be supplied
-            // to "foo" the service whenever needed
-        });
+
+```javascript
+angular.module("app")
+    .service("foo",function ($http,API,API_KEY) {
+        // The AngularJS Core $http object and custom constants
+        // API and API_KEY will be injected here and available
+        // for use in "foo" service.
+        return function () {};
+    });
+```
 
 #### Inline annotation dependancy syntax
 
-Dependancy names are hardcoded as strings into an ordered array and are therefore resilient to code minification:
+In this syntax dependancy names are hardcoded as strings into an ordered array along with the object function itself as the last element. This syntax is functionally equivalent to the inferred syntax above and resilient to minification although arguably more verbose and harder to maintain.
 
-    angular.module("app")
-        
-        .service("foo",["$http",function ($http) {
-            // ...
-        }]);
+```javascript
+angular.module("app")
+    .service("foo",["$http","API","API_KEY",function ($http,API,API_KEY) {
+        return function () {};
+    }]);
+```
 		
 ### Constants
 
