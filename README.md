@@ -19,7 +19,7 @@
 
 ## Modules
 
-A module is a logical collection of application components. They can contain nested child modules, services, controllers, filters, directives, constants and simple values.
+A module is a logical collection of application components. They can contain services, controllers, filters, directives, constants, simple values and further nested sub modules.
 
 Modules can be organised based on type (i.e. a module containing only controllers) or by app feature (i.e. a module containing a variety of components related to a particular site section) - pick whichever way works for your project. 
 
@@ -48,7 +48,7 @@ var myModule = angular.module("app");
 
 ## Module components
 
-These are the various decoupled components that are registered on the module. They include services, controllers, directives and other Angular component types (more on these later on).
+These are the various decoupled components that are registered on the module.
 
 Module components are registered during the configuration phase and instantiated and injected with dependancies later on during the run phase, therefore they can be registered in any order.
 
@@ -104,7 +104,7 @@ angular.module("app")
     }]);
 ```
 		
-### Constants
+### Constant components
 
 Module constants can be set via the module `constant` method. These define immutable values that are then available for DI in both the configuration and run module phases.
 
@@ -118,19 +118,21 @@ angular.module("app")
 	});
 ```
 
-### Config
+### Config components
 
-This is code to be run only during the configuration phase. Components can be injected into a config block and configured at will. Constants and providers are the only other sort of component that may be injected during config:
+This is code to be run only during the configuration phase. Components can be injected into a config block and configured at will. Constants (and "provider" services, more on these later) are the only sort of component that may be injected during config:
 
 ```
 angular.module("app")
     .config(function (API,API_KEY,apiService) {
+        // Here the apiService provider is configured
+        // with some constant values during the config phase
         apiService.base = API;
         apiService.key = API_KEY;
     );
 ```
 
-### Run
+### Run components
 
 This is code to be run after the configuration phase but before the module at large kicks into gear. This is where you can bootstrap your app if required. It is conceptually similar to an application's `main` function or primary entry point - the difference being that they are run on a per module basis and there can be multiple run blocks.
 
@@ -143,25 +145,94 @@ angular.module("app")
     });
 ```
 
-### Services
+### Service components
 
-AngularJS services are singleton components that can be used to:
+AngularJS services are singleton components. Only one instance is created by the framework and then supplied for every DI request. Service uses are typically:
 
 - Persist and share data between components
-- Provide an interface for accessing/loading that data
-- Containers for reusable chunks of logic (something like the Commands pattern)
+- Provide an interface for loading and accessing that data
+- Containers for reusable chunks of app logic
 
-Services can be registered on a module in a number of ways.
+Services can receive DI just like any other component and can be registered on a module in a number of ways.
 
-#### The service method
+#### module.service
 
-#### The factory method
+This is the simplest pattern, although naming one of a set of module service creation methods `service` was a confusing naming mistake. It allows registration of a service via a simple constructor function:
 
-#### The provider method
+```
+angular.module("app")
+    .service("myService",function () {
+        this.foo = function () {
+        };
+        this.bar = function () {
+        };
+    });
+```
 
-### Controllers
+#### module.factory
 
-### Filters
+This is a slightly more flexible pattern. Register an arbitrary object as a service. Object creation logic can be more complex and private fields can be simulated:
+
+```
+angular.module("app")
+    .factory("myServiceFactory",function () {
+        var privateVal = "baz";
+        return {
+            foo: function () {
+            },
+            bar: function () {
+            }
+        }
+    });
+```
+
+#### module.provider
+
+The most complex pattern. It allows an arbitrary object to be registered just like the factory pattern but also allows that object to be configured during the configuration phase before it's used for DI. Usually overkill for most services, and most useful when a service needs to be re-used across applications with configurable changes to behaviour.
+
+To register a provider service:
+
+```
+angular.module("app")
+    .provider("myServiceProvider",function () {
+        var configurableVal = "foo";
+        this.setConfigurableVal = function (val) {
+            configurableVal = val;
+        }
+        this.$get = function () {
+            return {
+                // Provider service body is defined here as the return
+                // value of the special $get method and has access to
+                // any configured values
+            }
+        }
+    });
+```
+
+And to configure it:
+
+```
+angular.module("app")
+    .config(function (myServiceProvider) {
+        myServiceProvider.setConfigurableVal("foo");
+    });
+```
+
+Note that providers injected during the configuration phase have not been fully instantiated via their `$get` method yet, only the configuration API is exposed to the config code.
+
+## Controllers
+
+### Scope
+
+Scopes are the application view model, that is, the model as it pertains to the DOM. They provide a data context for Controllers and view templates. Any model value assigned to a Controller's `$scope` become available for evaluation in a view template.
+
+Model values assigned to a `$scope` object will be automatically watched for changes and view template expressions will be re-evaluated and rendered upon any change.
+
+All `$scope` objects inherit from the application `$rootScope` instance via normal prototypical inheritance. Directives and controllers create a new child scope wherever they are defined and in this way child scopes will create a tree-like structure that partially reflects the DOM.
+
+## Views
+
+## Filters
 
 Create data transformation "pipelines" either in template expressions or app modules. A set of basic filters are provided by the framework but additional custom ones can be defined.
 
@@ -207,8 +278,6 @@ Custom filters can also be defined via the `filter` method. The below is a simpl
 - DON'T return HTML markup from filters, they should just operate abstractly on data
 
 Documentation: http://docs.angularjs.org/guide/filter
-
-## Views
 
 ## Building AngularJS Apps
 
