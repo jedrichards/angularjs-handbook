@@ -2,6 +2,7 @@
 
 ## Table of contents
 
+1. Key concepts
 1. Modules
    1. Module lifecycle
    2. Module creation 
@@ -16,6 +17,12 @@
    5. Services
    6. Controllers
    7. Filters
+
+## Key concepts
+
+- Use of the `$` in Angular code
+- DI, testability
+- Data binding
 
 ## Modules
 
@@ -150,14 +157,14 @@ angular.module("app")
 AngularJS services are singleton components. Only one instance is created by the framework and then supplied for every DI request. Service uses are typically:
 
 - Persist and share data between components
-- Provide an interface for loading and accessing that data
-- Containers for reusable chunks of app logic
+- Provide an interface for loading and accessing that data sync/aysnc
+- Containers for reusable chunks of app logic and functionality
 
 Services can receive DI just like any other component and can be registered on a module in a number of ways.
 
 #### module.service
 
-This is the simplest pattern, although naming one of a set of module service creation methods `service` was a confusing naming mistake. It allows registration of a service via a simple constructor function:
+This is the simplest pattern (although naming one of a set of module service creation methods `service` itself was a confusing naming mistake). It allows registration of a service via a constructor function:
 
 ```
 angular.module("app")
@@ -220,50 +227,255 @@ angular.module("app")
 
 Note that providers injected during the configuration phase have not been fully instantiated via their `$get` method yet, only the configuration API is exposed to the config code.
 
-## Controllers
+## Scopes
 
-### Scope
+Scopes are the application view model, that is, the model as it pertains to a section of the DOM. They provide a model data context for "scope-creating" directives (i.e. `ng-controller`) and view templates.
 
-Scopes are the application view model, that is, the model as it pertains to the DOM. They provide a data context for Controllers and view templates. Any model value assigned to a Controller's `$scope` become available for evaluation in a view template.
+Each scope is an instance of the `Scope` class. The `Scope` class doesn't contain any special data model related functionality beyond some framework utility methods, and therefore such data models can be thought of as POJOs (plain old JavaScript objects) as least in terms of data access and assignment.
 
-Model values assigned to a `$scope` object will be automatically watched for changes and view template expressions will be re-evaluated and rendered upon any change.
+Any value assigned to a `$scope` instance will become available for evaluation in a view template and will be automatically watched for changes - this is the live two way data binding between template and model that Angular is well known for.
 
-All `$scope` objects inherit from the application `$rootScope` instance via normal prototypical inheritance. Directives and controllers create a new child scope wherever they are defined and in this way child scopes will create a tree-like structure that partially reflects the DOM.
+Example of automatic scope creation and injection in a controller:
+
+```
+angular.controller("MyController",function ($scope) {
+    // A new Scope instance has been instantiated and injected
+    // ready for use in the controller and its view
+    $scope.foo = "bar";
+});
+```
+
+### Scope inheritance
+
+All `$scope` objects inherit from the application's `$rootScope` instance via normal prototypical inheritance. Therefore properties defined in a parent scope are visible in all child scopes (unless a child scope redefines an identically named property). Since new scopes are created by directives/controllers they will tend to create a hierarchical, inheriting tree-like structure that partially reflects the DOM structure.
+
+Note that inherited primitive properties such as the `string` and `number` types will prototypically propagate into child scopes by initial value only. That is, if their value is changed in the child scope then that change won't be reflected back into any parent scopes. Therefore if it is required that scope properties are fully shared throughout the scope inheritance hierarchy then define them as properties on an object reference, e.g. `obj:{prop:value}`.
+
+### Scope events
+
+Scopes can broadcast events down to child scopes, and emit events back up to parent scopes.
+
+```
+$scope.$broadcast("event",data);
+
+$scope.$emit("event",data);
+
+$scope.$on("event",handlerFunction);
+```
+
+In general scope events should be used sparingly, the auto two-way data binding to model values can go a long way towards coordinating state changes across an application without the need for events. Events are best suited for notifying app actors of global async state changes that don't relate to state held in scope data models.
 
 ## Views
 
+Views are live portions of the DOM, defined by valid HTML templates and associated with Angular code (directives, controllers etc.) via special attributes and expressions in the markup.
+
+Views are glued to their respective controller via their shared `$scope` instance and the two way data binding that Angular sets up between the view's DOM and the model values.
+
+Importantly views are declarative. They are focussed on describing *what* should happen rather *how* it should happen. The data model manipulation and mutation logic for UI behaviour should live in the view's controller, and any DOM manipulation code should live in directives.
+
+More on directives and controllers below.
+
+### View expressions
+
+Expressions are simple JavaScript-like code snippets inside HTML templates that operate within the data context provided by the current scope. They can access scope values, call scope methods or perform simple operations.
+
+When possible expressions are automatically re-evaluated and re-rendered when the related scope value changes.
+
+Render a scope value in a template:
+
+```
+<span>{{user.firstname}}</span>
+```
+
+Render the result of a scope method call in a template:
+
+```
+<span>Remaining issues: {{remainingIssues()}}
+```
+
+Perform a simple operation:
+
+```
+<span>{{2+2}}</span>
+```
+
+## Directives
+
+Directives are reusable blocks of Angular code/behaviour that can be attached to the live DOM via markers in the HTML. When Angular "compiles" the template HTML it will attempt to match directives with DOM elements based on these markers.
+
+Directives are commonly used to attach specific behaviour to a DOM element or transform a DOM element's (and potentially its children's) structure.
+
+Angular provides are large library of useful directives as part of the core framework, in addition you can define more application specific custom directives yourself.
+
+Directive markers can be placed in HTML using a number of methods (comments, tag names, classes and attributes). The recommended approach however is to use attributes in the dash delimited format `ng-<directive-name>`.
+
+### Simple core directive examples
+
+#### `ngClick`
+
+Evaluates an expression when an element is clicked.
+
+```
+<button ng-click="onBtnClicked()">Click me</button>
+```
+
+#### `ngRepeat`
+
+Repeats the current element based on an expression.
+
+```
+<li ng-repeat="user in users">
+    {{user.name}}
+</li>
+```
+
+#### `ngClass`
+
+Adds class names to an element if an expression in an object hash of potential class names evaluates to true.
+
+```
+<span ng-class="{'warning':shouldWarn()}"></span>
+```
+
+### Custom directives
+
+Custom directives can be defined on a module just like other components. They are defined via a factory function that can either return a more declarative-style directive definition object, or a directive function:
+
+```
+angular.module("app")
+    .directive("my-directive",function () {
+        return {
+            // Directive options go here
+        };
+    });
+```
+
+```
+angular.module("app")
+    .directive("my-directive",function () {
+        return function (scope,element,attr) {
+            // Directive init code here
+        };
+    });
+```
+
+#### Element vs. attribute directives
+
+#### Isolated scope
+
+#### Template expansion
+
+Custom directives can be used much like partials to avoid repeating often used chunks of HTML. For example the following directive will operate on a custom element `<customer-details>` and populate it with the contents of an external template.
+
+The custom directive definition:
+
+```
+angular.module("app")
+    .directive("customer-details",function () {
+        return {
+            templateUrl: "customer-details.html",
+            restrict: "E"
+        }
+    });
+```
+
+The controller definition:
+
+```
+angular.module("app")
+    .controller("CustomerCtrl",function ($scope) {
+        $scope.customer = {
+            name: "foo",
+            address: "bar"
+        }
+    });
+```
+
+The application markup:
+
+```
+<customer-details></customer-details>
+```
+
+And the `customer-details.html` template:
+
+```
+Name: {{customer.name}} Address: {{customer.address}}
+```
+
+#### DOM manipulation
+
+#### Wrappers
+
+#### Event listeners
+
+#### Composing
+
+## Controllers
+
+Controllers are constructor functions for JavaScript classes that are used to augment a view's scope with behaviour related to its particular data model.
+
+Controllers are implemented by first preparing them for DI as a module component:
+
+```
+angular.module("app")
+    .controller("MyCtrl",function ($scope) {
+        $scope.salutation = "Hello";
+        $scope.salutationTarget = "world";
+        $scope.num = 2;
+        $scope.double = function (value) {
+            return value*2;
+        }
+    });
+```
+
+And then referencing them in a view via the `ng-controller` directive:
+
+    <div ng-controller="MyCtrl">
+        <p>{{salutation}} {{salutationTarget}}</p>
+        <p>{{num}} doubled is {{double(num)}}</p>
+    </div>
+
+### Controller dos and don'ts
+
+- **DO** make them slim. They should only contain simple, testable logic related only to the model data context for a single view.
+- **DO** inject controllers with services if they need access to any shared state or functionality.
+- **DON'T** manipulate the DOM in a controller, use the automatic data binding or core Angular directives library instead, or if you need to go further custom directives.
+- **DON'T** filter output directly, use Angular filters.
+- **DON'T** format input, use Angular form controls.
+
 ## Filters
 
-Create data transformation "pipelines" either in template expressions or app modules. A set of basic filters are provided by the framework but additional custom ones can be defined.
+Create data transformation "pipelines" either in template expressions or other app components. A set of basic filters are provided by the framework but additional custom ones can be defined.
 
-#### In templates
+### In views
 
 For example in a template expression to limit a string to 80 chars and then transform it to all lowercase:
 
 	{{myString | limitTo:80 | lowercase}}
 
-Filters can also be applied to arrays, for example when reducing the elements outputted by the `ng-repeat` directive. In the code below only model items that contain an `active` property equal to `true` and a `firstName` property equal to the value of the `currentFirstName` property in the current `$scope` will be rendered.
+Filters can also be applied to arrays, for example when reducing the elements outputted by the `ng-repeat` directive. In the code below only model items that contain an `active` property equal to `true` will be rendered.
 
-	<li ng-repeat="item in items | filter{active:true,firstName:currentFirstName}">
+	<li ng-repeat="item in items | filter{active:true}">
 		{{item.firstName}} {{item.lastName}}
 	</li>
 
-#### In controllers
+### In controllers
 
-When using a filter directly in a controller then its DI name is formed from the pattern <filter-name>Filter, for example:
+When using a filter directly in a controller then its DI name is formed from the pattern `<filter-name>Filter`, for example to inject a filter called `bar`:
 
 	angular.module("foo")
-		.controller("FooCtrl",function ($scope,$someFilter) {
-			$scope.filteredValue = $someFilter(valueToFilter);
+		.controller("FooCtrl",function ($scope,$barFilter) {
+			$scope.filteredValue = $barFilter(valueToFilter);
 		});
 
 As a rule its better to define complex filtering logic in a controller since this can be tested in isolation away from the DOM.
 
-#### Custom filters
+### Custom filters
 
 Custom filters can also be defined via the `filter` method. The below is a simple custom filter for paginating an array:
 
-	angular.module("customFilters")
+	angular.module("app")
 		.filter("paginate",function () {
 			return function (array,page,length) {
 				var start = page*length;
@@ -271,15 +483,19 @@ Custom filters can also be defined via the `filter` method. The below is a simpl
 			};
 		});
 
-#### Filter dos and don'ts
+### Filter dos and don'ts
 
-- DO make them fast and efficient, they are typically "hot" code paths
-- DO make them idempotent. Calling them multiple times shouldn't have side effects and they shouldn't modify passed-in data directly
-- DON'T return HTML markup from filters, they should just operate abstractly on data
+- **DO** make them fast and efficient, they are typically "hot" code paths
+- **DO** make them idempotent. Calling them multiple times shouldn't have side effects and they shouldn't modify passed-in data directly
+- **DON'T** return HTML markup from filters, they should just operate abstractly on data
 
-Documentation: http://docs.angularjs.org/guide/filter
+## HTTP
 
-## Building AngularJS Apps
+## Forms
+
+## Routing
+
+## Build
 
 - AngularJS has an in-built module system that isolates app modules from the global scope and handles dependancy resolution and DI automatically so solutions like RequireJS may not be strictly needed. AngularJS app files can just be concatenated together when built, no special processing or ordering of code blocks is required.
 - If you use the "inferred" DI style then AngularJS code will break when minified. Either use the "inline annotation" DI style or a tool like `ngmin` in your build process to get around this.
