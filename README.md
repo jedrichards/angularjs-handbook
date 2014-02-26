@@ -25,11 +25,11 @@ Modules can be organised based on type (i.e. a module containing only controller
 Modules have two distinct phases in their lifecycle:
 
 1. The configuration phase. Constants are set and module components are registered and configured.
-2. The run phase. Module components are instantiated and injected with dependancies as needed.
+2. The run phase. Module components are instantiated and injected with dependencies as needed.
 
 ### Module creation
 
-Modules are created by defining the module name and an array of dependancies on other modules:
+Modules are created by defining the module name and an array of dependencies on other modules:
 
 ```
 angular.module("app",["services","controllers"]);
@@ -47,7 +47,7 @@ var myModule = angular.module("app");
 
 These are the various decoupled components that are registered on the module.
 
-Module components are registered during the configuration phase and instantiated and injected with dependancies later on during the run phase, therefore they can be registered in any order.
+Module components are registered during the configuration phase and instantiated and injected with dependencies later on during the run phase, therefore they can be registered in any order.
 
 Each component is defined together with a unique name which is used to resolve dependancy injections. Therefore module component names must be unique across the entire app.
 
@@ -70,7 +70,7 @@ angular.module("app")
 
 ### Component dependancy injection
 
-A key feature of AngularJS is the way that module components are only instantiated as needed with their dependancies injected dynamically during the run phase. This makes writing testable code easier as modules and components can be created in isolation and injected with mock/stub dependancies during a test.
+A key feature of AngularJS is the way that module components are only instantiated as needed with their dependencies injected dynamically during the run phase. This makes writing testable code easier as modules and components can be created in isolation and injected with mock/stub dependencies during a test.
 
 All dependancy names are combined into one app wide namespace. Therefore components registered in one module are available for injection in any other module.
 
@@ -78,7 +78,7 @@ DI occurs when a component is created on demand by the framework. There are two 
 
 #### Inferred syntax
 
-This is where the framework infers the dependancies from the function parameter names. This is a terse syntax but it will fail once the code has been minified since this will typically rename function parameters and destroy the mappings:
+This is where the framework infers the dependencies from the function parameter names. This is a terse syntax but it will fail once the code has been minified since this will typically rename function parameters and destroy the mappings:
 
 ```
 angular.module("app")
