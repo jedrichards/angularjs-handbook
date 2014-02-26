@@ -49,7 +49,7 @@ These are the various decoupled components that are registered on the module.
 
 Module components are registered during the configuration phase and instantiated and injected with dependencies later on during the run phase, therefore they can be registered in any order.
 
-Each component is defined together with a unique name which is used to resolve dependancy injections. Therefore module component names must be unique across the entire app.
+Each component is defined together with a unique name which is used to resolve dependency injections. Therefore module component names must be unique across the entire app.
 
 A module component can be registered as follows:
 
@@ -68,11 +68,11 @@ angular.module("app")
     .controller("HeaderCtrl",ConstructorFunction);
 ```
 
-### Component dependancy injection
+### Component dependency injection
 
 A key feature of AngularJS is the way that module components are only instantiated as needed with their dependencies injected dynamically during the run phase. This makes writing testable code easier as modules and components can be created in isolation and injected with mock/stub dependencies during a test.
 
-All dependancy names are combined into one app wide namespace. Therefore components registered in one module are available for injection in any other module.
+All dependency names are combined into one app wide namespace. Therefore components registered in one module are available for injection in any other module.
 
 DI occurs when a component is created on demand by the framework. There are two main types of DI syntax.
 
@@ -92,7 +92,7 @@ angular.module("app")
 
 #### Inline annotation syntax
 
-In this syntax dependancy names are hardcoded as strings into an ordered array along with the component function itself as the last element. This syntax is functionally equivalent to the inferred syntax above and resilient to minification although arguably more verbose and harder to maintain.
+In this syntax dependency names are hardcoded as strings into an ordered array along with the component function itself as the last element. This syntax is functionally equivalent to the inferred syntax above and resilient to minification although arguably more verbose and harder to maintain.
 
 ```
 angular.module("app")
@@ -487,5 +487,5 @@ Custom filters can also be defined via the `filter` method. The below is a simpl
 
 ## Build
 
-- AngularJS has an in-built module system that isolates app modules from the global scope and handles dependancy resolution and DI automatically so solutions like RequireJS may not be strictly needed. AngularJS app files can just be concatenated together when built, no special processing or ordering of code blocks is required.
+- AngularJS has an in-built module system that isolates app modules from the global scope and handles dependency resolution and DI automatically so solutions like RequireJS may not be strictly needed. AngularJS app files can just be concatenated together when built, no special processing or ordering of code blocks is required.
 - If you use the "inferred" DI style then AngularJS code will break when minified. Either use the "inline annotation" DI style or a tool like `ngmin` in your build process to get around this.
