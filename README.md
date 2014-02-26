@@ -2,27 +2,17 @@
 
 ## Table of contents
 
-1. Key concepts
 1. Modules
-   1. Module lifecycle
-   2. Module creation 
-   3. Module retrieval
 2. Module components
-   1. Component dependancy injection
-      1. Inferred syntax
-      2. Inline annotation syntax
-   2. Constants
-   3. Config
-   4. Run
-   5. Services
-   6. Controllers
-   7. Filters
-
-## Key concepts
-
-- Use of the `$` in Angular code
-- DI, testability
-- Data binding
+3. Scopes
+4. Views
+5. Directives
+6. Controllers
+7. Filters
+8. HTTP 
+9. Forms
+10. Routing
+11. Building
 
 ## Modules
 
