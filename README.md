@@ -16,7 +16,7 @@
 
 ## Modules
 
-A module is a logical collection of application components. They can contain services, controllers, filters, directives, constants and simple values.
+A module is a logical collection of application components.
 
 Modules provide a mechanism for declaring how groups of app components should be configured and then bootstrapped. They also provide a way for modules to declare dependencies on other modules.
 
@@ -53,11 +53,11 @@ Some apps will declare a single `"app"` module namespace and lump all the compon
 
 It is generally preferable however to create a highly granular set of modules - one module per site section, or even one module per file, and in each case explicitly define each module's limited set of dependencies. In this way the inter-dependency of modules is clear and the code is more testable.
 
-Whichever approach taken it is common to declare an `"app"` module upon which top level dependencies are declared and site specific config/bootstrapping work is registered.
+Whichever approach is taken, it is common to declare a main `"app"` module upon which top level dependencies are declared and any configuration work unique to the live site (i.e. not needed in test scenarios) can be completed.
 
 ## Module components
 
-These are the various decoupled components that are registered on the module.
+These are the various decoupled components that are registered on modules. They are variously: services, controllers, filters, directives, constants and simple values, either originating from the Angular core library or custom components.
 
 Module components are registered during the configuration phase and instantiated and injected with dependencies later on during the run phase, therefore they can be registered in any order.
 
@@ -66,27 +66,27 @@ Each component is defined together with a unique name which is used to resolve d
 A module component can be registered as follows:
 
 ```javascript
-myModule.service("name",ConstructorFunction);
+angular.module("app")
+	.service("name",ConstructorFunction);
 ```
 
-During component registration the constructor function or "recipe" for creating the component at a later date is passed in but it is not invoked. Components are instantiated by the framework later on lazily (on demand) during the run phase.
+As you can see a reference to a constructor function for the component is attached to the module but it is not invoked.
 
 The registration syntax also supports method chaining. This is used when defining multiple components in one file. However it's generally a good idea to organise components into folders and individual files.
 
 ```javascript
-angular.module("app")
-    .service("apiService",ConstructorFunction)
-    .controller("HomeCtrl",ConstructorFunction)
+angular.module("header")
+    .service("navService",ConstructorFunction)
     .controller("HeaderCtrl",ConstructorFunction);
 ```
 
 ### Component dependency injection
 
-A key feature of AngularJS is the way that module components are only instantiated as needed with their dependencies injected dynamically during the run phase. This makes writing testable code easier as modules and components can be created in isolation and injected with mock/stub dependencies during a test.
+A key feature of Angular is the way that module components are only instantiated as needed with their dependencies injected dynamically during the run phase. This makes writing testable code easier as modules and components can be created in isolation at will and injected with mock/stub dependencies during a test.
 
 All dependency names are combined into one app wide namespace. Therefore components registered in one module are available for injection in any other module.
 
-DI occurs when a component is created on demand by the framework. There are two main types of DI syntax.
+DI occurs when the Angular injector is able map a dependency to a previously registered component. There are two main types of DI syntax.
 
 #### Inferred syntax
 
@@ -662,7 +662,45 @@ angular.module("app")
 
 ## Angular promises
 
-Promises ...
+Angular exposes a lightweight Promise/Deferred implementation via its core `$q` service. 
+
+```javascript
+// Generate an instance of Deferred:
+var deferred = $q.defer();
+
+// Access the contained Promise instance:
+var promise = deferred.promise;
+
+// Manipulate the Deferred instance to resolve
+// or reject the Promise:
+deferred.resolve(value);
+// or deferred.reject(reason);
+
+// Use the promise instance to asynchronously
+// respond to the resolution/rejection:
+promise.then(onResolve,onReject,onNotify);
+```
+
+### `Promise.then`
+
+Attaches callbacks for promise resolution, rejection and notifications.
+
+Multiple `then` calls can attach multiple sets of callbacks that are invoked in order.
+
+The return value of a `then` call is a new promise (enables promise chaining). The resolution callback should return the resolution value of the new promise, or in the case of a failure the rejection callback should return a new rejected promise with a reason.
+
+```javascript
+
+function onResolve (res) {
+	return res;}
+
+function onReject (reason) {
+	if ( recoverable ) {
+		return newPromiseOrValue;	} else {
+		return $.reject(reason);	}}
+
+promise.then(onResolve,onReject);
+```
 
 ## HTTP
 
@@ -678,7 +716,7 @@ Requests can be made with the HTTP method shortcuts:
 $http.get("/api/v1/endpoint");
 ```
 
-Or by passing in a configuration object:
+Or by passing in a more detailed configuration object:
 
 ```javascript
 $http({
@@ -695,11 +733,7 @@ Responses are exposed by Angular's `$q` promise implementation:
 
 ```javascript
 $http.get("/api/v1/endpoint")
-    .then(onSuccess,onError,onNotify)
-    .done(onSuccess,onError,onNotify)
-    .catch(onError)
-    .progresa(onNotify)
-    .finally(onSuccessOrError)
+    .then(onSuccess,onError);
 ```
 
 The `$http` service also provides the `success` and `error` methods on top of the above promise API:
@@ -712,9 +746,11 @@ $http.get("/api/v1/endpoint")
     });
 ```
 
-### App wide HTTP setup
+### Interceptors
 
-Any global error handling, authentication, pre or post-processing of requests or responses can be done via interceptors:
+Any global error handling, authentication, pre or post-processing of requests or responses can be done via interceptors.
+
+Interceptors slot functionality into the promise chaining structure of the `$http` service.
 
 An example to globally detect a `403` response:
 
@@ -743,12 +779,30 @@ angular.module("http.interceptors.auth")
 
 ### HTTP resources
 
-When working with RESTful APIs we can abstract some of our HTTP code using the `$resource` service. This enables us to quickly define a clientside representation of a backend resource and then interact with it with a handy API.
+When working with RESTful APIs we can abstract some of our HTTP layer using the `$resource` service. At the expense of some flexibility this enables us to quickly define a clientside representation of a backend resource and then interact with it with a basic CRUD API.
 
-Example here ...
+For example, to define a service for interacting with an API endpoint representing app users:
 
-### Custom REST adapter
+```javascript
+angular.module("resources.users")
+	.factory("Users",function ($resource) {
+		var Users = $resource("/users/:id");
+		return Users;	});
+```
 
+And then to use it:
+
+```javascript
+angular.modules("userlist")
+	.controller("UserListCrtl",function ($scope,Users) {
+		// Attach an array of all users to the scope, the view
+		// will auto update when the returned array is populated:
+		$scope	.allUsers = Users.query();
+		// Get a particular user, will be an instance of Users:
+		var user = Users.$get({id:12345});	});
+```
+
+> If additional flexibility is required beyond that provided by `$resource` then totally custom REST services can be quite easily built up using the lower level `$http` service.
 
 ## Templates
 
