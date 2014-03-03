@@ -16,9 +16,9 @@
 
 ## Modules
 
-A module is a logical collection of application components. They can contain services, controllers, filters, directives, constants, simple values and further nested sub modules.
+A module is a logical collection of application components. They can contain services, controllers, filters, directives, constants and simple values.
 
-Modules can be organised based on type (i.e. a module containing only controllers) or by app feature (i.e. a module containing a variety of components related to a particular site section) - pick whichever way works for your project. 
+Modules provide a mechanism for declaring how groups of app components should be configured and then bootstrapped. They also provide a way for modules to declare dependencies on other modules.
 
 ### Module lifecycle
 
@@ -31,17 +31,29 @@ Modules have two distinct phases in their lifecycle:
 
 Modules are created by defining the module name and an array of dependencies on other modules:
 
-```
-angular.module("app",["services","controllers"]);
+```javascript
+angular.module("products",["resources.products","security.auth"]);
 ```
 
 ### Module retrieval 
 
 Once created, modules can be retrieved later on by just passing in a single parameter, the module name:
 
+```javascript
+var mod = angular.module("products");
 ```
-var myModule = angular.module("app");
-```
+
+### Module dependencies
+
+A module dependency implies that the configuration of the depended upon module should occur before that of the parent module, nothing more. The load/definition order of Angular modules is generally not important since at load time the component definition code is merely registered, not invoked.
+
+### App module structure
+
+Some apps will declare a single `"app"` module namespace and lump all the components together. Other apps will be slightly more granular and attempt to group components into a limited set of modules organised by type, i.e. a `"services"` module.
+
+It is generally preferable however to create a highly granular set of modules - one module per site section, or even one module per file, and in each case explicitly define each module's limited set of dependencies. In this way the inter-dependency of modules is clear and the code is more testable.
+
+Whichever approach taken it is common to declare an `"app"` module upon which top level dependencies are declared and site specific config/bootstrapping work is registered.
 
 ## Module components
 
@@ -53,7 +65,7 @@ Each component is defined together with a unique name which is used to resolve d
 
 A module component can be registered as follows:
 
-```
+```javascript
 myModule.service("name",ConstructorFunction);
 ```
 
@@ -61,7 +73,7 @@ During component registration the constructor function or "recipe" for creating 
 
 The registration syntax also supports method chaining. This is used when defining multiple components in one file. However it's generally a good idea to organise components into folders and individual files.
 
-```
+```javascript
 angular.module("app")
     .service("apiService",ConstructorFunction)
     .controller("HomeCtrl",ConstructorFunction)
@@ -80,7 +92,7 @@ DI occurs when a component is created on demand by the framework. There are two 
 
 This is where the framework infers the dependencies from the function parameter names. This is a terse syntax but it will fail once the code has been minified since this will typically rename function parameters and destroy the mappings:
 
-```
+```javascript
 angular.module("app")
     .service("foo",function ($http,API,API_KEY) {
         // The AngularJS Core $http component and the custom constants
@@ -94,7 +106,7 @@ angular.module("app")
 
 In this syntax dependency names are hardcoded as strings into an ordered array along with the component function itself as the last element. This syntax is functionally equivalent to the inferred syntax above and resilient to minification although arguably more verbose and harder to maintain.
 
-```
+```javascript
 angular.module("app")
     .service("foo",["$http","API","API_KEY",function ($http,API,API_KEY) {
         return function () {};
@@ -105,7 +117,7 @@ angular.module("app")
 
 Module constants can be set via the module `constant` method. These define immutable values that are then available for DI in both the configuration and run module phases.
 
-```
+```javascript
 angular.module("app")
 	.constant("API","/api/v1/")
 	.constant("API_KEY","940e12e5eaeb4e1baf964e45fc946498")
@@ -119,7 +131,7 @@ angular.module("app")
 
 This is code to be run only during the configuration phase. Components can be injected into a config block and configured at will. Constants (and "provider" services, more on these later) are the only sort of component that may be injected during config:
 
-```
+```javascript
 angular.module("app")
     .config(function (API,API_KEY,apiService) {
         // Here the apiService provider is configured
@@ -135,7 +147,7 @@ This is code to be run after the configuration phase but before the module at la
 
 For example to expose the time at which the app started-up on the root view scope:
 
-```
+```javascript
 angular.module("app") 
     .run(function ($rootScope) {
         $rootScope.appStartTime = new Date();
@@ -156,7 +168,7 @@ Services can receive DI just like any other component and can be registered on a
 
 This is the simplest pattern (although naming one of a set of module service creation methods `service` itself was a confusing naming mistake). It allows registration of a service via a constructor function:
 
-```
+```javascript
 angular.module("app")
     .service("myService",function () {
         this.foo = function () {
@@ -170,7 +182,7 @@ angular.module("app")
 
 This is a slightly more flexible pattern. Register an arbitrary object as a service. Object creation logic can be more complex and private fields can be simulated:
 
-```
+```javascript
 angular.module("app")
     .factory("myServiceFactory",function () {
         var privateVal = "baz";
@@ -189,7 +201,7 @@ The most complex pattern. It allows an arbitrary object to be registered just li
 
 To register a provider service:
 
-```
+```javascript
 angular.module("app")
     .provider("myServiceProvider",function () {
         var configurableVal = "foo";
@@ -208,7 +220,7 @@ angular.module("app")
 
 And to configure it:
 
-```
+```javascript
 angular.module("app")
     .config(function (myServiceProvider) {
         myServiceProvider.setConfigurableVal("foo");
@@ -227,7 +239,7 @@ Any value assigned to a `$scope` instance will become available for evaluation i
 
 Example of automatic scope creation and injection in a controller:
 
-```
+```javascript
 angular.controller("MyController",function ($scope) {
     // A new Scope instance has been instantiated and injected
     // ready for use in the controller and its view
@@ -245,15 +257,13 @@ Note that inherited primitive properties such as the `string` and `number` types
 
 Scopes can broadcast events down to child scopes, and emit events back up to parent scopes.
 
-```
+```javascript
 $scope.$broadcast("event",data);
-
 $scope.$emit("event",data);
-
 $scope.$on("event",handlerFunction);
 ```
 
-In general scope events should be used sparingly, the auto two-way data binding to model values can go a long way towards coordinating state changes across an application without the need for events. Events are best suited for notifying app actors of global async state changes that don't relate to state held in scope data models.
+> Note: In general scope events should be used sparingly, the auto two-way data binding to model values can go a long way towards coordinating state changes across an application without the need for events. Events are best suited for notifying app actors of global async state changes that don't relate to state held in scope data models.
 
 ## Views
 
@@ -261,9 +271,7 @@ Views are live portions of the DOM, defined by valid HTML templates and associat
 
 Views are glued to their respective controller via their shared `$scope` instance and the two way data binding that Angular sets up between the view's DOM and the model values.
 
-Importantly views are declarative. They are focussed on describing *what* should happen rather *how* it should happen. The data model manipulation and mutation logic for UI behaviour should live in the view's controller, and any DOM manipulation code should live in directives.
-
-More on directives and controllers below.
+> Note: Importantly views are declarative. They are focussed on describing *what* should happen rather *how* it should happen. The data model manipulation and mutation logic for UI behaviour should live in the view's controller, and any DOM manipulation code should live in directives.
 
 ### View expressions
 
@@ -273,19 +281,19 @@ When possible expressions are automatically re-evaluated and re-rendered when th
 
 Render a scope value in a template:
 
-```
+```html
 <span>{{user.firstname}}</span>
 ```
 
 Render the result of a scope method call in a template:
 
-```
+```html
 <span>Remaining issues: {{remainingIssues()}}
 ```
 
 Perform a simple operation:
 
-```
+```html
 <span>{{2+2}}</span>
 ```
 
@@ -297,7 +305,7 @@ Directives are commonly used to attach specific behaviour to a DOM element or tr
 
 Angular provides are large library of useful directives as part of the core framework, in addition you can define more application specific custom directives yourself.
 
-Directive markers can be placed in HTML using a number of methods (comments, tag names, classes and attributes). The recommended approach however is to use attributes in the dash delimited format `ng-<directive-name>`.
+> Note: Directive markers can be placed in HTML using a number of methods (comments, tag names, classes and attributes). The recommended approach however is to use attributes in a dash delimited format.
 
 ### Simple core directive examples
 
@@ -305,7 +313,7 @@ Directive markers can be placed in HTML using a number of methods (comments, tag
 
 Evaluates an expression when an element is clicked.
 
-```
+```html
 <button ng-click="onBtnClicked()">Click me</button>
 ```
 
@@ -313,7 +321,7 @@ Evaluates an expression when an element is clicked.
 
 Repeats the current element based on an expression.
 
-```
+```html
 <li ng-repeat="user in users">
     {{user.name}}
 </li>
@@ -323,83 +331,246 @@ Repeats the current element based on an expression.
 
 Adds class names to an element if an expression in an object hash of potential class names evaluates to true.
 
-```
+```html
 <span ng-class="{'warning':shouldWarn()}"></span>
 ```
 
 ### Custom directives
 
-Custom directives can be defined on a module just like other components. They are defined via a factory function that can either return a more declarative-style directive definition object, or a directive function:
+Custom directives can be defined by returning a directive definition object from a factory function. The options object instructs the Angular compiler how to link a HTML template or DOM portion together with a scope in order to create a functioning directive.
 
-```
+```javascript
 angular.module("app")
-    .directive("my-directive",function () {
+    .directive("myDirective",function () {
         return {
-            // Directive options go here
+            // Directive definition options
         };
     });
 ```
 
-```
-angular.module("app")
-    .directive("my-directive",function () {
-        return function (scope,element,attr) {
-            // Directive init code here
-        };
-    });
+The directive definition object can take many options which are detailed [here](http://docs.angularjs.org/api/ng/service/$compile), but the below is a brief discussion about some of the more important ones.
+
+#### `scope`
+
+This value defines how directive scope data (that is, attribute values set in the HTML template and/or values in the matched `$scope`) are exposed to the directive.
+
+The default value is `false`/`null`, which means the directive shares the current scope.
+
+A value of `true` creates a new scope for the directive that prototypically inherits from the current scope.
+
+An object hash `{}` can define various patterns for setting up data binding between the current scope and an otherwise new/isolated directive scope. Useful when creating reusable directives that should be encapsulated from the surrounding data context.
+
+Patterns available in the scope object hash:
+
+##### `@` Attribute string expression binder
+
+Binds a local property to the string result of an expression in an attribute the outer scope. Live changes are propagated into local scope. Example:
+
+```html
+<div my-directive my-attr="{{username}}"></div>
 ```
 
-#### Element vs. attribute directives
+```javasctipt
+scope: {
+    localName: "@myAttr"
+}
+```
 
-#### Isolated scope
+##### `=` Two way scope property binder
+
+Two way binding between a local scope property and an outer scope property as defined by an attribute. Any change to the property in one scope will be reflected in the other.
+
+```html
+<div my-directive my-attr="username"></div>
+```
+
+```javascript
+scope: {
+    localUsername: "=myAttr"
+}
+```
+
+##### `&` Expression invoker
+
+Provides a mechanism for executing expressions in the context of the outer scope. Arguments can be passed via an object hash.
+
+```html
+<div my-directive my-attr="increment(count)"></div>
+```
+
+```javascript
+scope: {
+    increment: "&myAttr"
+}
+// Then later on in the directive:
+$scope.increment({count:1});
+```
+
+##### `?` Optional flag
+
+Adding the optional `?` flag will avoid errors if the property doesn't exist in the parent scope, for example `=?myAttr`.
+
+> Note: by omitting the attribute name in the scope option object hash value string we indicate that the target attribute name is the same as the local isolate scope property name, e.g. `scope: { prop: "=" }` would bind to an attribute `prop` in the markup, such as `<div my-directive prop="username"></div>`.
+
+#### `restrict`
+
+Defines what sort of declaration style when encountered in the markup should be used to invoke the directive. Takes the form of a string containing a subset of the letters `EACM` - the presence of a letter allows the associated style. The default value is `A`.
+
+For example, a directive named `myDirective` could be declared in the markup using the following styles:
+
+- Attribute `<div my-directive></div>` `(A)`
+- Element `<my-directive></my-directive>` `(E)`
+- Class `<div class="my-directive"></div>` `!deprecated` `(C)`
+- Comment `<!-- directive:my-directive -->` `!deprecated` `(M)`
+
+> Note: Favour the default `A` attribute style of declaration, especially when decorating an existing element with extra behaviour. The `E` element name style can be considered when creating custom elements unique to your app.
+
+#### `template`/`templateUrl`
+
+Replaces, or appends to, the current element with the HTML in the template, either specified as a HTML string in the case of `template` or as a path to an external template in the case of `templateUrl`. All attributes and classes are migrated from the original element onto the new one.
+
+#### `link`
+
+Define a function with a signature `fn (scope,elem,attrs,ctrl)`. Used to attach DOM event listeners and manipulate the DOM based on UI interaction and changes in the scope model. Most directive logic goes here.
+
+#### `controller`
+
+Define a controller constructor function. The controller can be shared amoung directives thereby facilitating inter-directive communication.
+
+### Custom directive examples
 
 #### Template expansion
 
-Custom directives can be used much like partials to avoid repeating often used chunks of HTML. For example the following directive will operate on a custom element `<customer-details>` and populate it with the contents of an external template.
+A simple use for custom directives can template expansion. Conceptually similar to partials this sort of directive can be used to avoid repeating often used chunks of HTML.
 
-The custom directive definition:
+Directive definition:
 
-```
+```javascript
 angular.module("app")
     .directive("customer-details",function () {
         return {
-            templateUrl: "customer-details.html",
-            restrict: "E"
+            templateUrl: "/templates/customer-details.html"
         }
     });
 ```
 
-The controller definition:
+The HTML:
 
+```html
+<div customer-details></div>
 ```
+
+The template:
+
+```html
+<p>Name: {{customer.name}}</p>
+<p>Address: {{customer.address}}</p>
+```
+
+#### Scope isolation
+
+It's often good practice to isolate directive scopes and reduce their coupling to the surrounding HTML structure and data context. We need to map properties in the outer scope onto local properties in a isolated scope inside the directive.
+
+```javascript
 angular.module("app")
-    .controller("CustomerCtrl",function ($scope) {
-        $scope.customer = {
-            name: "foo",
-            address: "bar"
+    .controller("MyCtrl",function ($scope) {
+           $scope.personA = "Jack";
+           $scope.personB = "Jill";
+    })
+    .directive("myDirective",function () {
+        return {
+            template: "<p>{{localPerson}}</p>",
+            scope: {
+                localPerson: "="
+            }
+        }
+    })
+```
+
+The HTML:
+
+```html
+<div my-ctrl>
+	<div my-directive local-person="personA"></div>
+	<div my-directive local-person="personB"></div>
+</div>
+```
+
+Here we are mapping value of the `local-person` attribute to the `localPerson` value in the directive's isolated scope. The value of the attribute is a property name expression that resolves to a value in the parent controller's scope.
+
+In this way two way data binding can be set up between a parent scope context and an encapsulated isolated directive scope. Note that the actual detail of the mapping is defined declaratively in the template.
+
+#### DOM interaction
+
+Typically when manipulating the directive's DOM and attaching DOM event listeners we use the `link` function option. The `link` function takes the following parameters:
+
+- `scope` The Angular scope instance for the directive
+- `element` The element matched by the directive, wrapped in jqLite
+- `attrs` Object hash of normalised element attribute names and values
+
+The `link` function is executed after Angular has processed the template and wired up the DOM, so its safe to transform the DOM and work with the scope.
+
+```javascript
+angular.module("app")
+    .directive("myDirective",function () {
+        return {
+            link: function ($scope,element,attrs) {
+                // Manipulate the DOM:
+                element.text("foobar");
+                // Watch an attribute expression for changes:
+                $scope.$watch(attrs.fooAttribute,function (value) {});
+                // Listen to a DOM event:
+                element.on("mousedown",function (e) {});
+                // Respond to the element being destroyed:
+                element.on("$destroy",function () {});
+            }
         }
     });
 ```
 
-The application markup:
+#### Transcluding directives
 
+> "In computer science *transclusion* is the insertion of a document into another document at a particular point." - Wikipedia
+
+In terms of Angular directives, transclusion describes the process of a directive wrapping the *contents* of the matched element with the result of its own compiled template. In other words, the matched element's contents is extracted and inserted into the directive's template at a particular point.
+
+Consider a use case where arbitrary content should be wrapped in a HTML structure designed to turn it into an alert-style popup.
+
+The original markup:
+    
+```html
+<div alert-popup>
+	<p>Alert! Something happened you should know about.</p>
+</div>
 ```
-<customer-details></customer-details>
+
+The directive:
+
+```javascript
+angular.module("app")
+    .directive("alertPopup",function () {
+        return {
+            transclude: true,
+            template: "<div class='alert' ng-transclude></div>"
+        }
+    });
 ```
 
-And the `customer-details.html` template:
+The resulting processed DOM:
 
+```html    
+<div alert-popup>
+	<div class="alert" ng-transclude>
+		<p>Alert! Something happened you should know about.</p>
+	</div>
+</div>
 ```
-Name: {{customer.name}} Address: {{customer.address}}
-```
 
-#### DOM manipulation
+> Note: the `ng-transclude` directive in the template defines the position at which the transclusion should be inserted.
 
-#### Wrappers
+#### Inter-directive cooperation
 
-#### Event listeners
-
-#### Composing
+Directives can communicate with other directives in the same scope. When directives depend on one another we can use the `require` option to enforce their presence. An example of a cooperating set of directives would be a tab-based navigation managing a set of content panes.
 
 ## Controllers
 
@@ -407,7 +578,7 @@ Controllers are constructor functions for JavaScript classes that are used to au
 
 Controllers are implemented by first preparing them for DI as a module component:
 
-```
+```javascript
 angular.module("app")
     .controller("MyCtrl",function ($scope) {
         $scope.salutation = "Hello";
@@ -421,10 +592,12 @@ angular.module("app")
 
 And then referencing them in a view via the `ng-controller` directive:
 
-    <div ng-controller="MyCtrl">
-        <p>{{salutation}} {{salutationTarget}}</p>
-        <p>{{num}} doubled is {{double(num)}}</p>
-    </div>
+```html
+<div ng-controller="MyCtrl">
+	<p>{{salutation}} {{salutationTarget}}</p>
+	<p>{{num}} doubled is {{double(num)}}</p>
+</div>
+```
 
 ### Controller dos and don'ts
 
@@ -442,22 +615,28 @@ Create data transformation "pipelines" either in template expressions or other a
 
 For example in a template expression to limit a string to 80 chars and then transform it to all lowercase:
 
-	{{myString | limitTo:80 | lowercase}}
+```html
+{{myString | limitTo:80 | lowercase}}
+```
 
 Filters can also be applied to arrays, for example when reducing the elements outputted by the `ng-repeat` directive. In the code below only model items that contain an `active` property equal to `true` will be rendered.
 
-	<li ng-repeat="item in items | filter{active:true}">
-		{{item.firstName}} {{item.lastName}}
-	</li>
+```html
+<li ng-repeat="item in items | filter{active:true}">
+	{{item.firstName}} {{item.lastName}}
+</li>
+```
 
 ### In controllers
 
 When using a filter directly in a controller then its DI name is formed from the pattern `<filter-name>Filter`, for example to inject a filter called `bar`:
 
-	angular.module("foo")
-		.controller("FooCtrl",function ($scope,$barFilter) {
-			$scope.filteredValue = $barFilter(valueToFilter);
-		});
+```javascript
+angular.module("foo")
+	.controller("FooCtrl",function ($scope,$barFilter) {
+		$scope.filteredValue = $barFilter(valueToFilter);
+	});
+```
 
 As a rule its better to define complex filtering logic in a controller since this can be tested in isolation away from the DOM.
 
@@ -465,13 +644,15 @@ As a rule its better to define complex filtering logic in a controller since thi
 
 Custom filters can also be defined via the `filter` method. The below is a simple custom filter for paginating an array:
 
-	angular.module("app")
-		.filter("paginate",function () {
-			return function (array,page,length) {
-				var start = page*length;
-				return array.slice(start,start+length);
-			};
-		});
+```javascript
+angular.module("app")
+	.filter("paginate",function () {
+		return function (array,page,length) {
+			var start = page*length;
+			return array.slice(start,start+length);
+		};
+});
+```
 
 ### Filter dos and don'ts
 
@@ -479,7 +660,97 @@ Custom filters can also be defined via the `filter` method. The below is a simpl
 - **DO** make them idempotent. Calling them multiple times shouldn't have side effects and they shouldn't modify passed-in data directly
 - **DON'T** return HTML markup from filters, they should just operate abstractly on data
 
+## Angular promises
+
+Promises ...
+
 ## HTTP
+
+The `$http` service is the core Angular utility for communicating with a backend. 
+
+By default all `$http` request data objects are transformed into JSON and all responses are transformed into objects, if possible.
+
+### Requests
+
+Requests can be made with the HTTP method shortcuts:
+
+```javascript
+$http.get("/api/v1/endpoint");
+```
+
+Or by passing in a configuration object:
+
+```javascript
+$http({
+    method: "GET",
+    url: "/api/v1/endpoint",
+    params: {key:"value"},
+    data: {}
+});
+```
+
+### Responses
+
+Responses are exposed by Angular's `$q` promise implementation:
+
+```javascript
+$http.get("/api/v1/endpoint")
+    .then(onSuccess,onError,onNotify)
+    .done(onSuccess,onError,onNotify)
+    .catch(onError)
+    .progresa(onNotify)
+    .finally(onSuccessOrError)
+```
+
+The `$http` service also provides the `success` and `error` methods on top of the above promise API:
+
+```javascript
+$http.get("/api/v1/endpoint")
+    .success(function (data,status,headers,config) {
+    })
+    .error(function (data,status,headers,config) {
+    });
+```
+
+### App wide HTTP setup
+
+Any global error handling, authentication, pre or post-processing of requests or responses can be done via interceptors:
+
+An example to globally detect a `403` response:
+
+```javascript
+angular.module("http.interceptors.auth")
+    .factory("http403Interceptor",function ($q) {
+        return {
+            "responseError": function (res) {
+                if ( res.status === 403 ) {
+                    // Display error?
+                    // Redirect to login?
+                    // Etc
+                }
+                $q.reject(res);
+            }
+        }
+    });
+```
+
+```javascript
+angular.module("http.interceptors.auth")
+    .config(function ($httpProvider) {
+        $httpProvider.interceptors.push("http403Interceptor")
+    });
+```
+
+### HTTP resources
+
+When working with RESTful APIs we can abstract some of our HTTP code using the `$resource` service. This enables us to quickly define a clientside representation of a backend resource and then interact with it with a handy API.
+
+Example here ...
+
+### Custom REST adapter
+
+
+## Templates
 
 ## Forms
 
