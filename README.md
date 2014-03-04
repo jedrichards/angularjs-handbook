@@ -13,7 +13,8 @@
 8. [HTTP](#http)
 9. [Routing](#routing)
 10. [Forms](#forms)
-11. [Building](#building)
+11. [Testing](#testing)
+12. [Building](#building)
 
 ## Modules
 
@@ -119,7 +120,7 @@ angular.module("app")
 Module constants can be set via the module `constant` method. These define immutable values that are then available for DI in both the configuration and run module phases.
 
 ```javascript
-angular.module("app")
+angular.module("error-messages")
     .constant("API","/api/v1/")
     .constant("API_KEY","940e12e5eaeb4e1baf964e45fc946498")
     .constant("ERROR_MESSAGES",{
@@ -165,12 +166,12 @@ AngularJS services are singleton components. Only one instance is created by the
 
 Services can receive DI just like any other component and can be registered on a module in a number of ways.
 
-#### module.service
+#### `module.service(name,fn)`
 
 This is the simplest pattern (although naming one of a set of module service creation methods `service` itself was a confusing naming mistake). It allows registration of a service via a constructor function:
 
 ```javascript
-angular.module("app")
+angular.module("services")
     .service("myService",function () {
         this.foo = function () {
         };
@@ -179,12 +180,12 @@ angular.module("app")
     });
 ```
 
-#### module.factory
+#### `module.factory(name,fn)`
 
 This is a slightly more flexible pattern. Register an arbitrary object as a service. Object creation logic can be more complex and private fields can be simulated:
 
 ```javascript
-angular.module("app")
+angular.module("services")
     .factory("myServiceFactory",function () {
         var privateVal = "baz";
         return {
@@ -196,14 +197,14 @@ angular.module("app")
     });
 ```
 
-#### module.provider
+#### `module.provider(name,fn)`
 
 The most complex pattern. It allows an arbitrary object to be registered just like the factory pattern but also allows that object to be configured during the configuration phase before it's used for DI. Usually overkill for most services, and most useful when a service needs to be re-used across applications with configurable changes to behaviour.
 
 To register a provider service:
 
 ```javascript
-angular.module("app")
+angular.module("services")
     .provider("myServiceProvider",function () {
         var configurableVal = "foo";
         this.setConfigurableVal = function (val) {
@@ -241,11 +242,12 @@ Any value assigned to a `$scope` instance will become available for evaluation i
 Example of automatic scope creation and injection in a controller:
 
 ```javascript
-angular.controller("MyController",function ($scope) {
-    // A new Scope instance has been instantiated and injected
-    // ready for use in the controller and its view
-    $scope.foo = "bar";
-});
+angular.module("controllers")
+    .controller("MyController",function ($scope) {
+        // A new Scope instance has been instantiated and injected
+        // ready for use in the controller and its view
+        $scope.foo = "bar";
+    });
 ```
 
 ### Scope inheritance
@@ -932,5 +934,7 @@ app.module("user-detail")
 ```
 
 ## Forms
+
+## Testing
 
 ## Building
