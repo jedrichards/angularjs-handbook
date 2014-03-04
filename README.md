@@ -2,16 +2,17 @@
 
 ## Table of contents
 
-1. Modules
+1. (Modules)[#modules]
 2. Components
 3. Scopes
 4. Views
 5. Directives
 6. Controllers
 7. Filters
+8. Promises
 8. HTTP
-9. Forms
-10. Routing
+9. Routing
+10. Forms
 11. Building
 
 ## Modules
@@ -718,7 +719,7 @@ angular.module("app")
 - **DO** make them idempotent. Calling them multiple times shouldn't have side effects and they shouldn't modify passed-in data directly
 - **DON'T** return HTML markup from filters, they should just operate abstractly on data
 
-## Angular promises
+## Promises
 
 Angular exposes a lightweight Promise/Deferred implementation via its core `$q` service.
 
@@ -920,8 +921,6 @@ The controller/template combinations defined in the route configuration will be 
     <footer></footer>
 </body>
 ```
-
-### Route controllers
 
 The `UserCtrl` for the above routes configuration might look something like:
 
