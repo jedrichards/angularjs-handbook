@@ -1,19 +1,19 @@
-# AngularJS Notes
+# AngularJS Handbook
 
 ## Table of contents
 
 1. [Modules](#modules)
-2. Components
-3. Scopes
-4. Views
-5. Directives
-6. Controllers
-7. Filters
-8. Promises
-8. HTTP
-9. Routing
-10. Forms
-11. Building
+2. [Components](#components)
+3. [Scopes](#scopes)
+4. [Views](#views)
+5. [Directives](#directives)
+6. [Controllers](#controllers)
+7. [Filters](#filters)
+8. [Promises](#promises)
+8. [HTTP](#http)
+9. [Routing](#routing)
+10. [Forms](#forms)
+11. [Building](#building)
 
 ## Modules
 
