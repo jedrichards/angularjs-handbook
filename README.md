@@ -935,6 +935,35 @@ app.module("user-detail")
 
 ## Forms
 
+Angular actually defines a set of element name directives that match HTML's form input elements, `<input>`, `<select>`, `<textarea>` etc. What this means is that when we use a standard form input element Angular is overlaying additional functionality behind the scenes.
+
+### `ng-model`
+
+By using the `ng-model` directive in a form input element we can set up two-way data binding between an input's value and a scope model value. In the below example the model value `$scope.user.name` is bound to the input's value, a change to either will change the other:
+
+```html
+<label>First name</label>
+<input type="text" ng-model="user.firstname">
+```
+
+In this way the data model represented by a form is decoupled from the DOM. This makes it easier to work with the data model in the rest of your application, for example passing it to a service for saving back to an API.
+
+### Form model transformations
+
+It is often necessary to transform form model values. For example, a server might expect a date to be sent as a Unix timecode but such data is more appropriately displayed to the user in a DD/MM/YYYY format.
+
+
+
+### Form CSS
+
+Angular will add and remove the following CSS classes based on form element state:
+
+- `ng-pristine` The element hasn't been  by the user
+- `ng-dirty` The element has been edited
+- `ng-valid` The element value is valid
+- `ng-invalid` The element value is invalid
+
+
 ## Testing
 
 ## Building
