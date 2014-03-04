@@ -2,7 +2,7 @@
 
 ## Table of contents
 
-1. (Modules)[#modules]
+1. [Modules](#modules)
 2. Components
 3. Scopes
 4. Views
