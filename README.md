@@ -3,13 +3,13 @@
 ## Table of contents
 
 1. Modules
-2. Module components
+2. Components
 3. Scopes
 4. Views
 5. Directives
 6. Controllers
 7. Filters
-8. HTTP 
+8. HTTP
 9. Forms
 10. Routing
 11. Building
@@ -35,7 +35,7 @@ Modules are created by defining the module name and an array of dependencies on 
 angular.module("products",["resources.products","security.auth"]);
 ```
 
-### Module retrieval 
+### Module retrieval
 
 Once created, modules can be retrieved later on by just passing in a single parameter, the module name:
 
@@ -55,7 +55,7 @@ It is generally preferable however to create a highly granular set of modules - 
 
 Whichever approach is taken, it is common to declare a main `"app"` module upon which top level dependencies are declared and any configuration work unique to the live site (i.e. not needed in test scenarios) can be completed.
 
-## Module components
+## Components
 
 These are the various decoupled components that are registered on modules. They are variously: services, controllers, filters, directives, constants and simple values, either originating from the Angular core library or custom components.
 
@@ -67,7 +67,7 @@ A module component can be registered as follows:
 
 ```javascript
 angular.module("app")
-	.service("name",ConstructorFunction);
+    .service("name",ConstructorFunction);
 ```
 
 As you can see a reference to a constructor function for the component is attached to the module but it is not invoked.
@@ -112,19 +112,19 @@ angular.module("app")
         return function () {};
     }]);
 ```
-		
+
 ### Constant components
 
 Module constants can be set via the module `constant` method. These define immutable values that are then available for DI in both the configuration and run module phases.
 
 ```javascript
 angular.module("app")
-	.constant("API","/api/v1/")
-	.constant("API_KEY","940e12e5eaeb4e1baf964e45fc946498")
-	.constant("ERROR_MESSAGES",{
-	    "500": "Oh no, something has broken",
-	    "403": "You need to be logged in to do that"
-	});
+    .constant("API","/api/v1/")
+    .constant("API_KEY","940e12e5eaeb4e1baf964e45fc946498")
+    .constant("ERROR_MESSAGES",{
+        "500": "Oh no, something has broken",
+        "403": "You need to be logged in to do that"
+    });
 ```
 
 ### Config components
@@ -148,7 +148,7 @@ This is code to be run after the configuration phase but before the module at la
 For example to expose the time at which the app started-up on the root view scope:
 
 ```javascript
-angular.module("app") 
+angular.module("app")
     .run(function ($rootScope) {
         $rootScope.appStartTime = new Date();
     });
@@ -265,19 +265,58 @@ $scope.$on("event",handlerFunction);
 
 > Note: In general scope events should be used sparingly, the auto two-way data binding to model values can go a long way towards coordinating state changes across an application without the need for events. Events are best suited for notifying app actors of global async state changes that don't relate to state held in scope data models.
 
+### Advanced scope methods
+
+#### `$scope.$new(isolate)`
+
+Creates a new child scope:
+
+```javascript
+var childScope = $scope.$new();
+```
+
+#### `$scope.$digest()`
+
+Immediately invokes all of a scope's watchers and dirty checking code in order to update any two-way data bindings. Will propagate checks into child scopes. Usually only used in testing code when there's a need to instantly simulate scope life cycles.
+
+#### `$scope.$apply(expression||fn)`
+
+By registering a piece of code via a scope's `$apply` method we indicate to Angular that it is likely to result in changes to a scope's data a model and therefore will require a future call to `$digest`.
+
+Whenever we interact with Angular's core services and directives the framework will be wrapping our activities in `$apply` behind the scenes when needed, so we rarely have to call it explicitly. The only time we need to call it explicitly is when we make changes to a scope's model and Angular can't be reasonably expected to notice right away:
+
+```javascript
+setTimeout(function () {
+    $scope.$apply(function () {
+        $scope.counter = $scope.counter + 1;
+    });
+},2000);
+```
+
+#### `$scope.$watch(expression||fn,onChange)`
+
+Watches a scope value for changes. Fires the `onChange` listener when a change is detected. The watched value can either be defined by a string expression or a function that returns the actual value to be watched.
+
+```javascript
+$scope.name = "Jack";
+$scope.$watch("name",function () {
+    // Name has changed
+});
+```
+
 ## Views
 
-Views are live portions of the DOM, defined by valid HTML templates and associated with Angular code (directives, controllers etc.) via special attributes and expressions in the markup.
+Views are live portions of the DOM, defined by valid HTML templates and bound to Angular components via special attributes and expressions in the markup.
 
-Views are glued to their respective controller via their shared `$scope` instance and the two way data binding that Angular sets up between the view's DOM and the model values.
+Views are glued to their respective controllers and directives via their shared `$scope` instance, the two-way data binding that Angular sets up between the view's DOM and the model values.
 
 > Note: Importantly views are declarative. They are focussed on describing *what* should happen rather *how* it should happen. The data model manipulation and mutation logic for UI behaviour should live in the view's controller, and any DOM manipulation code should live in directives.
 
 ### View expressions
 
-Expressions are simple JavaScript-like code snippets inside HTML templates that operate within the data context provided by the current scope. They can access scope values, call scope methods or perform simple operations.
+Expressions are simple JavaScript-like code snippets inside view templates that operate within the data context provided by the current scope. They can access scope values, call scope methods or perform simple operations.
 
-When possible expressions are automatically re-evaluated and re-rendered when the related scope value changes.
+Expressions are automatically re-evaluated and re-rendered when the related scope value changes. Angular uses an efficient "dirty checking" algorithm to achieve this.
 
 Render a scope value in a template:
 
@@ -296,6 +335,26 @@ Perform a simple operation:
 ```html
 <span>{{2+2}}</span>
 ```
+
+### Managing template files
+
+Templates can be referenced in a number of ways:
+
+1. Via the `ng-include` directive in another template
+2. Mapped to url changes via the `$routeProvider` service
+3. Via the `templateUrl` option in a custom directive
+
+A template can either be in the form of a `<script>` tag:
+
+```html
+<script type="text/ng-template" id="/templates/foo.html">
+    Template contents.
+</script>
+```
+
+Or simply an external `.html` file that is lazy loaded and then cached by Angular.
+
+In a large app there may be many tens or hundreds of external template files. There are Grunt tasks that help with concatenating such sets of files into the main app JavaScript bundle.
 
 ## Directives
 
@@ -441,9 +500,9 @@ Define a controller constructor function. The controller can be shared amoung di
 
 #### Template expansion
 
-A simple use for custom directives can template expansion. Conceptually similar to partials this sort of directive can be used to avoid repeating often used chunks of HTML.
+A simple use for custom directives can be template "expansion. Conceptually similar to partials this sort of directive can be used to avoid repeating often used chunks of HTML.
 
-Directive definition:
+For example, a directive to consistently render a block of HTML related to customer details. Directive definition:
 
 ```javascript
 angular.module("app")
@@ -491,8 +550,8 @@ The HTML:
 
 ```html
 <div my-ctrl>
-	<div my-directive local-person="personA"></div>
-	<div my-directive local-person="personB"></div>
+    <div my-directive local-person="personA"></div>
+    <div my-directive local-person="personB"></div>
 </div>
 ```
 
@@ -537,10 +596,10 @@ In terms of Angular directives, transclusion describes the process of a directiv
 Consider a use case where arbitrary content should be wrapped in a HTML structure designed to turn it into an alert-style popup.
 
 The original markup:
-    
+
 ```html
 <div alert-popup>
-	<p>Alert! Something happened you should know about.</p>
+    <p>Alert! Something happened you should know about.</p>
 </div>
 ```
 
@@ -558,11 +617,11 @@ angular.module("app")
 
 The resulting processed DOM:
 
-```html    
+```html
 <div alert-popup>
-	<div class="alert" ng-transclude>
-		<p>Alert! Something happened you should know about.</p>
-	</div>
+    <div class="alert" ng-transclude>
+        <p>Alert! Something happened you should know about.</p>
+    </div>
 </div>
 ```
 
@@ -594,8 +653,8 @@ And then referencing them in a view via the `ng-controller` directive:
 
 ```html
 <div ng-controller="MyCtrl">
-	<p>{{salutation}} {{salutationTarget}}</p>
-	<p>{{num}} doubled is {{double(num)}}</p>
+    <p>{{salutation}} {{salutationTarget}}</p>
+    <p>{{num}} doubled is {{double(num)}}</p>
 </div>
 ```
 
@@ -605,7 +664,6 @@ And then referencing them in a view via the `ng-controller` directive:
 - **DO** inject controllers with services if they need access to any shared state or functionality.
 - **DON'T** manipulate the DOM in a controller, use the automatic data binding or core Angular directives library instead, or if you need to go further custom directives.
 - **DON'T** filter output directly, use Angular filters.
-- **DON'T** format input, use Angular form controls.
 
 ## Filters
 
@@ -616,14 +674,14 @@ Create data transformation "pipelines" either in template expressions or other a
 For example in a template expression to limit a string to 80 chars and then transform it to all lowercase:
 
 ```html
-{{myString | limitTo:80 | lowercase}}
+<p>{{myString | limitTo:80 | lowercase}}</p>
 ```
 
 Filters can also be applied to arrays, for example when reducing the elements outputted by the `ng-repeat` directive. In the code below only model items that contain an `active` property equal to `true` will be rendered.
 
 ```html
 <li ng-repeat="item in items | filter{active:true}">
-	{{item.firstName}} {{item.lastName}}
+    {{item.firstName}} {{item.lastName}}
 </li>
 ```
 
@@ -633,9 +691,9 @@ When using a filter directly in a controller then its DI name is formed from the
 
 ```javascript
 angular.module("foo")
-	.controller("FooCtrl",function ($scope,$barFilter) {
-		$scope.filteredValue = $barFilter(valueToFilter);
-	});
+    .controller("FooCtrl",function ($scope,$barFilter) {
+        $scope.filteredValue = $barFilter(valueToFilter);
+    });
 ```
 
 As a rule its better to define complex filtering logic in a controller since this can be tested in isolation away from the DOM.
@@ -646,11 +704,11 @@ Custom filters can also be defined via the `filter` method. The below is a simpl
 
 ```javascript
 angular.module("app")
-	.filter("paginate",function () {
-		return function (array,page,length) {
-			var start = page*length;
-			return array.slice(start,start+length);
-		};
+    .filter("paginate",function () {
+        return function (array,page,length) {
+            var start = page*length;
+            return array.slice(start,start+length);
+        };
 });
 ```
 
@@ -662,7 +720,7 @@ angular.module("app")
 
 ## Angular promises
 
-Angular exposes a lightweight Promise/Deferred implementation via its core `$q` service. 
+Angular exposes a lightweight Promise/Deferred implementation via its core `$q` service.
 
 ```javascript
 // Generate an instance of Deferred:
@@ -692,19 +750,23 @@ The return value of a `then` call is a new promise (enables promise chaining). T
 ```javascript
 
 function onResolve (res) {
-	return res;}
+    return res;
+}
 
 function onReject (reason) {
-	if ( recoverable ) {
-		return newPromiseOrValue;	} else {
-		return $.reject(reason);	}}
+    if ( recoverable ) {
+        return newPromiseOrValue;
+    } else {
+        return $.reject(reason);
+    }
+}
 
 promise.then(onResolve,onReject);
 ```
 
 ## HTTP
 
-The `$http` service is the core Angular utility for communicating with a backend. 
+The `$http` service is the core Angular utility for communicating with a backend.
 
 By default all `$http` request data objects are transformed into JSON and all responses are transformed into objects, if possible.
 
@@ -785,32 +847,91 @@ For example, to define a service for interacting with an API endpoint representi
 
 ```javascript
 angular.module("resources.users")
-	.factory("Users",function ($resource) {
-		var Users = $resource("/users/:id");
-		return Users;	});
+    .factory("Users",function ($resource) {
+        var Users = $resource("/users/:id");
+        return Users;
+    });
 ```
 
 And then to use it:
 
 ```javascript
 angular.modules("userlist")
-	.controller("UserListCrtl",function ($scope,Users) {
-		// Attach an array of all users to the scope, the view
-		// will auto update when the returned array is populated:
-		$scope	.allUsers = Users.query();
-		// Get a particular user, will be an instance of Users:
-		var user = Users.$get({id:12345});	});
+    .controller("UserListCrtl",function ($scope,Users) {
+        // Attach an array of all users to the scope, the view
+        // will auto update when the returned array is populated:
+        $scope.allUsers = Users.query();
+        // Get a particular user, will be an instance of Users:
+        var user = Users.$get({id:12345});
+    });
 ```
 
 > If additional flexibility is required beyond that provided by `$resource` then totally custom REST services can be quite easily built up using the lower level `$http` service.
 
-## Templates
+## Routing
+
+The vast majority of app routing can be handled by Angular's core `ngRoute` service.
+
+### Configuring routes
+
+Routing can be configured via `$routeProvider`:
+
+```javascript
+angular.module("router")
+    .config(function ($route,$routeProvider,$locationProvider) {
+        $locationProvider.html5Mode = true;
+        $routeProvider
+            .when("/",{
+                templateUrl: "/templates/home.html",
+                controller: "HomeCtrl"
+            })
+            .when("/users/:id",{
+                templateUrl: "/templates/user-detail.html",
+                controller: "UserDetailCtrl",
+                resolve: {
+                    userData: function (UserService) {
+                        return UserService.getUserData($route.current.params.id);
+                    }
+                }
+            })
+            .when("/bad-path",{
+                redirectTo: "/good-path"
+            })
+            .when("/good-path",{
+                templateUrl: "/templates/good-path.html"
+            })
+            .when("/404",{
+                templateUrl: "/templates/404.html"
+            })
+            .otherwise({
+                redirectTo("/404")
+            })
+    });
+```
+
+Everything should be self explanatory in the above code example, except perhaps the `resolve` option. This defines an object hash of dependencies for the route controller which return promises that should be resolved before rendering the route - for example promises that load essential API data for the route.
+
+The controller/template combinations defined in the route configuration will be rendered into the DOM whenever the route changes at the location of the `ng-view` directive, of which there should be only one in your markup. For example:
+
+```html
+<body>
+    <nav></nav>
+    <div class="main-container" ng-view></div>
+    <footer></footer>
+</body>
+```
+
+### Route controllers
+
+The `UserCtrl` for the above routes configuration might look something like:
+
+```javascript
+app.module("user-detail")
+    .controller("UserCtrl",function ($scope,userData) {
+        $scope.userData = userData;
+    });
+```
 
 ## Forms
 
-## Routing
-
-## Build
-
-- AngularJS has an in-built module system that isolates app modules from the global scope and handles dependency resolution and DI automatically so solutions like RequireJS may not be strictly needed. AngularJS app files can just be concatenated together when built, no special processing or ordering of code blocks is required.
-- If you use the "inferred" DI style then AngularJS code will break when minified. Either use the "inline annotation" DI style or a tool like `ngmin` in your build process to get around this.
+## Building
