@@ -1114,11 +1114,17 @@ Nested `<form>` tags are not valid HTML, however Angular allows nested forms via
 
 ### Unit tests
 
-Unit testing means testing individual components in isolation. Angular's dependency injection system strongly encourages writing highly encapsulated, decoupled components with very limited concerns.
+Unit testing means testing individual components in isolation. Angular's dependency injection system strongly encourages writing highly encapsulated, decoupled components with very limited concerns that are easy to test.
 
-It is common to write Angular unit tests in Jasmine and run them via Karma. Karma will communicate with browsers running locally on your dev machine and inject dynamically generated test suites into them using Socket.io and report back the results.
+It is common to write Angular unit tests in Jasmine and run them via the Karma test runner. Karma will dynamically generate HTML test suite pages based on your tests and run them via Socket.io on local browsers and/or PhantomJS.
 
+Although Angular is well suited to testing, there are many and varied approaches to writing tests for the various different types of components. What's more writing tests will often involve using some features of the core framework that are rarely used in the main application code base - for example, the `$injector`, `$compile` and `Scope.$digest` (amoung others).
 
+#### Testing controllers
+
+#### Testing HTTP services
+
+#### Testing directives
 
 ### End-to-end ("e2e") integration tests
 
