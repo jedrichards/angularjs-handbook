@@ -22,6 +22,8 @@ A module is a logical collection of application components.
 
 Modules provide a mechanism for declaring how groups of app components should be configured and then bootstrapped. They also provide a way for modules to declare dependencies on other modules.
 
+Modules do not attempt to solve the problem of script lazy loading or inter-script dependencies.
+
 ### Module lifecycle
 
 Modules have two distinct phases in their lifecycle:
@@ -229,7 +231,7 @@ angular.module("app")
     });
 ```
 
-Note that providers injected during the configuration phase have not been fully instantiated via their `$get` method yet, only the configuration API is exposed to the config code.
+> Note: Providers injected during the configuration phase have not been fully instantiated via their `$get` method yet, only the configuration API is exposed to the config code.
 
 ## Scopes
 
@@ -254,7 +256,7 @@ angular.module("controllers")
 
 All `$scope` objects inherit from the application's `$rootScope` instance via normal prototypical inheritance. Therefore properties defined in a parent scope are visible in all child scopes (unless a child scope redefines an identically named property). Since new scopes are created by directives/controllers they will tend to create a hierarchical, inheriting tree-like structure that partially reflects the DOM structure.
 
-Note that inherited primitive properties such as the `string` and `number` types will prototypically propagate into child scopes by initial value only. That is, if their value is changed in the child scope then that change won't be reflected back into any parent scopes. Therefore if it is required that scope properties are fully shared throughout the scope inheritance hierarchy then define them as properties on an object reference, e.g. `obj:{prop:value}`.
+> Note: that inherited primitive properties such as the `string` and `number` types will prototypically propagate into child scopes by initial value only. That is, if their value is changed in the child scope then that change won't be reflected back into any parent scopes. Therefore if it is required that scope properties are fully shared throughout the scope inheritance hierarchy then define them as properties on an object reference, e.g. `obj:{prop:value}`.
 
 ### Scope events
 
@@ -680,6 +682,12 @@ For example in a template expression to limit a string to 80 chars and then tran
 <p>{{myString | limitTo:80 | lowercase}}</p>
 ```
 
+To format an object as JSON and print it out:
+
+```html
+<pre>{{obj | json}}</pre>
+```
+
 Filters can also be applied to arrays, for example when reducing the elements outputted by the `ng-repeat` directive. In the code below only model items that contain an `active` property equal to `true` will be rendered.
 
 ```html
@@ -935,34 +943,136 @@ app.module("user-detail")
 
 ## Forms
 
-Angular actually defines a set of element name directives that match HTML's form input elements, `<input>`, `<select>`, `<textarea>` etc. What this means is that when we use a standard form input element Angular is overlaying additional functionality behind the scenes.
+To facilitate working with forms Angular actually defines a set of element name directives that match HTML's form input elements `<input>`, `<select>`, `<textarea>` etc. What this means is that when we use a standard form input element with Angular the framework is overlaying additional directive-based functionality behind the scenes.
 
-### `ng-model`
+The goal of extending form elements with directives is to de-couple the form data as displayed to the user from the form data as held in the attached scope's data model yet still retain the flexibility of Angular's two-way data binding.
 
-By using the `ng-model` directive in a form input element we can set up two-way data binding between an input's value and a scope model value. In the below example the model value `$scope.user.name` is bound to the input's value, a change to either will change the other:
+The `ng-model` directive links a form element's value to a scope model value in a two-way binding. In the example below the model value `$scope.user.firstname` is bound to the text input's value - a user initiated change to the input's value in the DOM will change the scope value, and vice versa:
 
 ```html
 <label>First name</label>
 <input type="text" ng-model="user.firstname">
 ```
 
-In this way the data model represented by a form is decoupled from the DOM. This makes it easier to work with the data model in the rest of your application, for example passing it to a service for saving back to an API.
+In this way we can maintain an accurate representation of the form's data state in the scope model and easily pass it into our app, for example to use a HTTP service to save it to a server.
 
-### Form model transformations
+### Accessing form state
+
+By assigning `name` attribute's to both the `<form>` element and its child elements we can access information about their state in our form's scope.
+
+```html
+<div ng-controller="UserFormCtrl">
+    <form name="userForm">
+        <input type="text" name="firstname" ng-model="user.firstname">
+    </form>
+</div>
+```
+
+With the form element name attributes thusly populated we expose values such as `$scope.userForm` and `$scope.userForm.firstname` on the scope. These objects contain values that indicate an element's state:
+
+- `$valid` Is the element in a valid state
+- `$invalid` Is the element in an invalid state
+- `$pristine` Is the element in an unedited state
+- `$dirty` Is the element in an edited state
+- `$errors` An object hash of boolean values indicating specific validation errors, e.g. `$errors.email` indicates email validation failure
+
+> Note: Angular will also attach appropriate CSS classes indicating these states to the elements, for example `.ng-valid`, `.ng-dirty` etc.
+
+### Form data model transformations
 
 It is often necessary to transform form model values. For example, a server might expect a date to be sent as a Unix timecode but such data is more appropriately displayed to the user in a DD/MM/YYYY format.
 
+Such transformations happen in two directions. As the data model is *formatted* for display in the DOM, and DOM values are *parsed* for setting in the data model.
 
+The `ng-model` directive exposes it's controller to the scope to facilitate such transformations. Specifically the controller's `$parsers` and `$formatters` arrays, which can contain transformation pipelines.
 
-### Form CSS
+These pipelines are built up by pushing functions into each array in a custom directive.
 
-Angular will add and remove the following CSS classes based on form element state:
+```javascript
+angular.module("user-form")
+    .directive("date",function ($filter) {
+        return {
+            restrict: "A",
+            require: "?ngModel",
+            link: function (scope,element,attrs,ngModel) {
+                ngModel.$formatters.push(function (value) {
+                    return $filter("date")(value,"dd/mm/yyyy");
+                });
+                ngModel.$parsers.push(function (value) {
+                    var parts = value.split("/");
+                    // convert parts array to Date etc.
+                    return date.getTime()/1000;
+                });
+            }
+        }
+    });
+```
 
-- `ng-pristine` The element hasn't been  by the user
-- `ng-dirty` The element has been edited
-- `ng-valid` The element value is valid
-- `ng-invalid` The element value is invalid
+```html
+<label>Start date</label>
+<input type="text" name="startDate" ng-model="startDate" date>
+```
 
+### Validation
+
+Angular provides an array of additional directives that we can use to define validation rules on form elements. In fact, some of these directives are named the same as their HTML relatives - for example, adding `type="email"` to an `<input>` element will cause Angular's email validation directive to kick in.
+
+It is for this reason that it is recommended to add the `novalidate` attribute to Angular forms to prevent HTML5's in-built form validation to kick in and potentially cause conflicts.
+
+By using these directives and the way they expose their state onto the scope we can build up fairly richly interactive forms simply using view expressions.
+
+```html
+<div ng-controller="UserFormCtrl">
+    <form name="userForm" ng-submit="submit()" novalidate>
+        <input type="email" name="email" ng-model="user.email">
+        <span ng-show="userForm.email.$errors.email">Email is invalid</span>
+        <input type="submit" ng-disabled="userForm.$invalid">
+    </form>
+</div>
+```
+
+Here we can see that a boolean value has been exposed at `$scope.userForm.email.$errors.email` indicating the validity of the input as an email address. If we had applied an `ng-required` directive we could expect to find that piece of validation state at `$scope.userForm.email.$errors.required`.
+
+Available validation directives include:
+
+- `ng-required`
+- `ng-minlength`
+- `ng-maxlength`
+- `ng-pattern`
+- `ng-min`
+- `ng-max`
+
+#### Custom validation
+
+Custom validation is achieved in a similar way to data transformations. That is, by accessing the API exposed by ngModel's controller via a custom directive.
+
+The example directive below will validate an input as an integer. Validation results are exposed on the `$scope.formName.elementName.$errors` object in the same way as the core validation directives.
+
+```javascript
+angular.module("user-form")
+    .directive("integer",function ($filter) {
+        return {
+            restrict: "A",
+            require: "?ngModel",
+            link: function (scope,element,attrs,ngModel) {
+                ngModel.$parsers.push(function (value) {
+                    if ( value === integer ) {
+                        ngModel.$setValidity("integer",false);
+                        return value;
+                    } else {
+                        ngModel.$setValidity("integer",false);
+                        return undefined;
+                    }
+                });
+            }
+        }
+    });
+```
+
+```html
+<label>Age</label>
+<input type="text" name="userAge" ng-model="userAge" integer>
+```
 
 ## Testing
 
