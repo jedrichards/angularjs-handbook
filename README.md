@@ -235,11 +235,13 @@ angular.module("app")
 
 ## Scopes
 
-Scopes are the application view model, that is, the model as it pertains to a section of the DOM. They provide a model data context for "scope-creating" directives (i.e. `ng-controller`) and view templates.
+Scopes are the application view model, that is, the model as it pertains to a section of the DOM.
 
 Each scope is an instance of the `Scope` class. The `Scope` class doesn't contain any special data model related functionality beyond some framework utility methods, and therefore such data models can be thought of as POJOs (plain old JavaScript objects) as least in terms of data access and assignment.
 
-Any value assigned to a `$scope` instance will become available for evaluation in a view template and will be automatically watched for changes - this is the live two way data binding between template and model that Angular is well known for.
+A new scope instance is created everytime Angular encounters a "scope creating directive" (such as `ng-controller`).
+
+Any value assigned to a `$scope` instance will become available for evaluation in a view and will be automatically watched for changes - this is the live two way data binding between view and model that Angular is well known for.
 
 Example of automatic scope creation and injection in a controller:
 
@@ -958,7 +960,7 @@ In this way we can maintain an accurate representation of the form's data state 
 
 ### Accessing form state
 
-By assigning `name` attribute's to both the `<form>` element and its child elements we can access information about their state in our form's scope.
+By assigning `name` attribute's to both the form element and its child elements we can access information about their state in the current scope.
 
 ```html
 <div ng-controller="UserFormCtrl">
@@ -968,7 +970,7 @@ By assigning `name` attribute's to both the `<form>` element and its child eleme
 </div>
 ```
 
-With the form element name attributes thusly populated we expose values such as `$scope.userForm` and `$scope.userForm.firstname` on the scope. These objects contain values that indicate an element's state:
+With the form element name attributes thusly populated we expose values such as `$scope.userForm` and `$scope.userForm.firstname` on the scope. These objects are actually references to controllers created by the framework and contain values that indicate an element's state:
 
 - `$valid` Is the element in a valid state
 - `$invalid` Is the element in an invalid state
@@ -984,7 +986,7 @@ It is often necessary to transform form model values. For example, a server migh
 
 Such transformations happen in two directions. As the data model is *formatted* for display in the DOM, and DOM values are *parsed* for setting in the data model.
 
-The `ng-model` directive exposes it's controller to the scope to facilitate such transformations. Specifically the controller's `$parsers` and `$formatters` arrays, which can contain transformation pipelines.
+The `ng-model` directive exposes its controller to the scope to facilitate such transformations. Specifically the controller's `$parsers` and `$formatters` arrays, which can contain transformation pipelines.
 
 These pipelines are built up by pushing functions into each array in a custom directive.
 
@@ -1000,7 +1002,8 @@ angular.module("user-form")
                 });
                 ngModel.$parsers.push(function (value) {
                     var parts = value.split("/");
-                    // convert parts array to Date etc.
+                    var date;
+                    // some code to convert parts array to Date etc.
                     return date.getTime()/1000;
                 });
             }
@@ -1056,6 +1059,7 @@ angular.module("user-form")
             require: "?ngModel",
             link: function (scope,element,attrs,ngModel) {
                 ngModel.$parsers.push(function (value) {
+                    // Pseudo code to test value as integer
                     if ( value === integer ) {
                         ngModel.$setValidity("integer",false);
                         return value;
