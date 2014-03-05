@@ -237,19 +237,25 @@ angular.module("app")
 
 Scopes are the application view model, that is, the model as it pertains to a section of the DOM.
 
-Each scope is an instance of the `Scope` class. The `Scope` class doesn't contain any special data model related functionality beyond some framework utility methods, and therefore such data models can be thought of as POJOs (plain old JavaScript objects) as least in terms of data access and assignment.
+Each scope is an instance of the `Scope` class. The `Scope` class doesn't contain any special data model related functionality beyond some framework utility methods, and therefore such data models can be thought of as POJOs (plain old JavaScript objects), at least in terms of data access and assignment.
 
-A new scope instance is created everytime Angular encounters a "scope creating directive" (such as `ng-controller`).
+A new scope instance is created every time Angular encounters a "scope creating directive" (such as `ng-controller`).
 
 Any value assigned to a `$scope` instance will become available for evaluation in a view and will be automatically watched for changes - this is the live two way data binding between view and model that Angular is well known for.
 
 Example of automatic scope creation and injection in a controller:
 
+```html
+<div ng-controller="MyController">
+    <p>{{foo}}</p>
+</div>
+```
+
 ```javascript
 angular.module("controllers")
     .controller("MyController",function ($scope) {
         // A new Scope instance has been instantiated and injected
-        // ready for use in the controller and its view
+        // ready for use with this controller and its view
         $scope.foo = "bar";
     });
 ```
@@ -270,7 +276,7 @@ $scope.$emit("event",data);
 $scope.$on("event",handlerFunction);
 ```
 
-> Note: In general scope events should be used sparingly, the auto two-way data binding to model values can go a long way towards coordinating state changes across an application without the need for events. Events are best suited for notifying app actors of global async state changes that don't relate to state held in scope data models.
+> Note: In general scope events should be used sparingly, the auto two-way data binding between scope and view can go a long way towards coordinating state changes across an application without the need for events. Events are best suited for notifying app actors of global async state changes that don't relate to state held in view scopes - for example routing changes.
 
 ### Advanced scope methods
 
@@ -351,7 +357,7 @@ Templates can be referenced in a number of ways:
 2. Mapped to url changes via the `$routeProvider` service
 3. Via the `templateUrl` option in a custom directive
 
-A template can either be in the form of a `<script>` tag:
+A template can either be in the form of a `<script>` tag (which must be placed somewhere in the DOM as a child of `ng-app`):
 
 ```html
 <script type="text/ng-template" id="/templates/foo.html">
@@ -359,9 +365,29 @@ A template can either be in the form of a `<script>` tag:
 </script>
 ```
 
-Or simply an external `.html` file that is lazy loaded and then cached by Angular.
+Or simply an external `.html` file that is lazy loaded on demand. In either case once a template `<script>` tag has been parsed, or an external file has been loaded, the template is thereafter cached (in the `$templateCache` service) and available instantly.
 
 In a large app there may be many tens or hundreds of external template files. There are Grunt tasks that help with concatenating such sets of files into the main app JavaScript bundle.
+
+### Unprocessed template display
+
+Under some conditions views could briefly show their unprocessed `{{}}` expressions to the user while data is being gathered.
+
+The `ng-cloak` directive can be used to hide portions of the DOM while Angular is waiting for scope data to be processed and then automatically shown when ready:
+
+```html
+<div ng-controller="MyCtrl" ng-cloak>
+       <h1>Hello, {{name}}!</h1>
+</div>
+```
+
+An alternative approach is to place the expression in an `ng-bind` directive instead:
+
+```html
+<div ng-controller="MyCtrl">
+       <h1>Hello, <span ng-bind="name"></span>!</h1>
+</div>
+```
 
 ## Directives
 
@@ -997,6 +1023,7 @@ angular.module("user-form")
             restrict: "A",
             require: "?ngModel",
             link: function (scope,element,attrs,ngModel) {
+                if ( !ngModel ) return;
                 ngModel.$formatters.push(function (value) {
                     return $filter("date")(value,"dd/mm/yyyy");
                 });
@@ -1058,6 +1085,7 @@ angular.module("user-form")
             restrict: "A",
             require: "?ngModel",
             link: function (scope,element,attrs,ngModel) {
+                if ( !ngModel ) return;
                 ngModel.$parsers.push(function (value) {
                     // Pseudo code to test value as integer
                     if ( value === integer ) {
@@ -1078,6 +1106,20 @@ angular.module("user-form")
 <input type="text" name="userAge" ng-model="userAge" integer>
 ```
 
+### Nested forms
+
+Nested `<form>` tags are not valid HTML, however Angular allows nested forms via the `<ng-form>` element directive. In this way reusable sub-forms can be created (for example, a password and confirm password input field set) and nested into parent forms. By applying `name` attributes to the sub forms we can access their properties from the scope.
+
 ## Testing
+
+### Unit tests
+
+Unit testing means testing individual components in isolation. Angular's dependency injection system strongly encourages writing highly encapsulated, decoupled components with very limited concerns.
+
+It is common to write Angular unit tests in Jasmine and run them via Karma. Karma will communicate with browsers running locally on your dev machine and inject dynamically generated test suites into them using Socket.io and report back the results.
+
+
+
+### End-to-end ("e2e") integration tests
 
 ## Building
