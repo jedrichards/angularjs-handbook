@@ -1119,7 +1119,7 @@ It is common to write Angular unit tests in Jasmine and run them via the Karma t
 
 Although Angular is well suited to testing, there are varied approaches to writing unit tests for the various different types of components. What's more, writing tests will often involve using some features of the core framework that are rarely used in your standard application code - for example, the `$injector` and `$compile` services and `Scope.$digest` etc. That said, there's no "right" way to write an Angular unit test - as long as the test runs and tests something sensible then it's doing its job.
 
-#### Anatomy of a Jasmine tests
+#### Anatomy of a Jasmine test
 
 Jasmine tests are composed from suites, specs and expectations.
 
@@ -1212,7 +1212,7 @@ beforeEach(function () {
                 return [
                     {user:"Jack",id:1},
                     {user:"Jill",id:2}
-                ]
+                ];
             }
         }
     });
@@ -1230,7 +1230,7 @@ describe("projectsService",function () {
         module("project-service");
     });
 
-    it("should return an array for getUsers",inject(function (projectsService) {
+    it("getUsers should return an array",inject(function (projectsService) {
         expect(typeof projectsService.getUsers()).toEqual("array");
     }));
 });
@@ -1250,9 +1250,71 @@ describe("projectsService",function () {
         });
     });
 
-    it("should return an array for getUsers",inject(function (projectsService) {
+    it("getUsers should return an array",function () {
         expect(typeof projectsService.getUsers()).toEqual("array");
-    }));
+    });
+});
+```
+
+##### Mock `$httpBackend`
+
+When `ngMock` is present the normal version of `$httpBackend` will be replaced with a special mock version that allows us to simulate fake async responses from a live API in our tests. When our test subjects make calls such as `$http.get("/api/v1/users")` we can intercept them and return dummy data. From the point of view of the test subject nothing has changed in the implementation.
+
+###### `$httpBackend.when(method,url[,data,headers])`
+
+Mocks an API end point along with a response.
+
+```javascript
+$httpBackend.when("GET","/api/v1/users").respond([
+    200,
+    [
+        {user:"Jack",id:1},
+        {user:"Jill",id:2}
+    ],
+    {"Content-Type":"application/json; charset=UTF-8"}
+]);
+```
+
+###### `$httpBackend.expect(method,url[,data,headers])`
+
+Similar to `$httpBackend.when` although it implies an expectation that the call should be made sometime during the test. Use the `verifyNoOutstandingExpectation` and `verifyNoOutstandingRequest` methods in a `afterEach` block to ascertain if the expected calls were made.
+
+###### `$httpBackend.flush([count])`
+
+Upon calling `flush` the `$httpBackend` mock will immediately send all the pending fake responses. In this way async API calls can be tested synchronously.
+
+###### Example
+
+```javascript
+describe("projectsService",function () {
+
+    var projectsService;
+    var $httpBackend;
+
+    beforeEach(function () {
+        module("project-service");
+        inject(function ($injector) {
+            projectsService = $injector.get("projectsService");
+            $httpBackend = $injector.get("$httpBackend");
+        });
+        $httpBackend.when("GET","/api/v1/users").respond([
+            200,
+            [
+                {user:"Jack",id:1},
+                {user:"Jill",id:2}
+            ],
+            {"Content-Type":"application/json; charset=UTF-8"}
+        ]);
+    });
+
+    it("getUsers should return an array",function () {
+        var users;
+        projectsService.getUsers().then(function (res) {
+            users = res;
+        });
+        $httpBackend.flush();
+        expect(users).toEqual("array");
+    });
 });
 ```
 
