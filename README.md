@@ -14,7 +14,6 @@
 9. [Routing](#routing)
 10. [Forms](#forms)
 11. [Testing](#testing)
-12. [Building](#building)
 
 ## Modules
 
@@ -1116,16 +1115,153 @@ Nested `<form>` tags are not valid HTML, however Angular allows nested forms via
 
 Unit testing means testing individual components in isolation. Angular's dependency injection system strongly encourages writing highly encapsulated, decoupled components with very limited concerns that are easy to test.
 
-It is common to write Angular unit tests in Jasmine and run them via the Karma test runner. Karma will dynamically generate HTML test suite pages based on your tests and run them via Socket.io on local browsers and/or PhantomJS.
+It is common to write Angular unit tests in Jasmine and run them via the Karma test runner. Karma will dynamically generate HTML test suite pages based on your tests and run them via web sockets on local browsers and/or PhantomJS.
 
-Although Angular is well suited to testing, there are many and varied approaches to writing tests for the various different types of components. What's more writing tests will often involve using some features of the core framework that are rarely used in the main application code base - for example, the `$injector`, `$compile` and `Scope.$digest` (amoung others).
+Although Angular is well suited to testing, there are varied approaches to writing unit tests for the various different types of components. What's more, writing tests will often involve using some features of the core framework that are rarely used in your standard application code - for example, the `$injector` and `$compile` services and `Scope.$digest` etc. That said, there's no "right" way to write an Angular unit test - as long as the test runs and tests something sensible then it's doing its job.
+
+#### Anatomy of a Jasmine tests
+
+Jasmine tests are composed from suites, specs and expectations.
+
+```javascript
+// The 'describe' function creates a suite:
+describe("A suite",function () {
+
+    // The 'it' function creates a spec:
+    it("a spec",function () {
+        // The 'expect' function works with Jasmine matchers to
+        // create an expectation:
+        expect(true).toBeTruthy();
+    });
+
+    // Suites can be nested:
+    describe("A nested suite",function () {
+        // Etc.
+    });
+});
+```
+
+We can use the `beforeEach` and `afterEach` functions to define code that should be run before and after every spec in a suite:
+
+```javascript
+describe("A suite",function () {
+
+    // 'beforeEach' will be run before every spec. It shares its
+    // 'this' context with the spec. The 'this' context will be
+    // destroyed and recreated each time 'beforeEach' runs.
+    beforeEach(function () {
+        this.foo = true;
+    });
+
+    // `beforeEach` can also be used to initialise values in the
+    // outer scope for use in each spec.
+    var bar;
+    beforeEach(function () {
+        bar = false;
+    });
+
+    it("a spec",function () {
+        expect(this.foo).toBeTruthy();
+        expect(bar).toBeFalsy();
+    });
+});
+```
+
+Some further examples of expectations:
+
+- `toBe` Compares with `===`
+- `toEqual` Compares with `==`
+- `toBeDefined` Compares with `undefined`
+- `toBeUndefined` Compares with `undefined`
+- `toBeNull` Compares with `null`
+- `toBeTruthy`
+- `toBeFalsy`
+- `toBeLessThan` Compares numerical magnitude
+- `toBeGreaterThan` Compares numerical magnitude
+- `toContain` Checks if an element is present in an array
+- `tothrow` Checks if a function throws an error
+- `not` Inverts an expectation, `expect(true).not.toBeFalsy`
+
+
+#### ngMock
+
+Karma dynamically builds the test suite HTML page and includes functionality provided by the `ngMock` service. This exposes a number of useful test helpers:
+
+##### `window.module()`
+
+Loads modules in preparation for a test. The following code will load the `projects-list` and `projects-service` modules and their dependencies in preparation for a test.
+
+```javascript
+beforeEach(function () {
+    module("projects-list");
+    module("projects-service");
+});
+```
+
+When testing a component in isolation sometimes it's necessary to mock up one of its dependencies. That is, create a fake version of a dependency with stub methods and inject it into the component under test. This would enable us to be sure that any test failures are the fault of the component under test rather than a dependency.
+
+We can use `window.module()` to register such a mock. The following code would ensure that whenever the `projectsService` component is requested for dependency injection during the test the mock object would be delivered instead:
+
+```javascript
+beforeEach(function () {
+    module("projects-list");
+    module("projects-service");
+    module({
+        "projectsService": {
+            getUsers: function () {
+                return [
+                    {user:"Jack",id:1},
+                    {user:"Jill",id:2}
+                ]
+            }
+        }
+    });
+});
+```
+
+##### `window.inject()`
+
+Creates an instance of the `$injector` service to use in each test. The `$injector` will be prepped with the modules defined in an earlier call to `window.module()`. Use it to inject your test subjects into the tests.
+
+```javascript
+describe("projectsService",function () {
+
+    beforeEach(function () {
+        module("project-service");
+    });
+
+    it("should return an array for getUsers",inject(function (projectsService) {
+        expect(typeof projectsService.getUsers()).toEqual("array");
+    }));
+});
+```
+
+Alternatively, instead of injecting the dependencies into every test spec we can move the injection to the `beforeEach` function. Useful if we have many `it` test specs that are all interested in the same test subject.
+
+```javascript
+describe("projectsService",function () {
+
+    var projectsService;
+
+    beforeEach(function () {
+        module("project-service");
+        inject(function ($injector) {
+            projectsService = $injector.get("projectsService");
+        });
+    });
+
+    it("should return an array for getUsers",inject(function (projectsService) {
+        expect(typeof projectsService.getUsers()).toEqual("array");
+    }));
+});
+```
 
 #### Testing controllers
+
+#### Testing views
 
 #### Testing HTTP services
 
 #### Testing directives
 
 ### End-to-end ("e2e") integration tests
-
-## Building
