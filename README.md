@@ -1119,6 +1119,8 @@ It is common to write Angular unit tests in Jasmine and run them via the Karma t
 
 Although Angular is well suited to testing, there are varied approaches to writing unit tests for the various different types of components. What's more, writing tests will often involve using some features of the core framework that are rarely used in your standard application code - for example, the `$injector` and `$compile` services and `Scope.$digest` etc. That said, there's no "right" way to write an Angular unit test - as long as the test runs and tests something sensible then it's doing its job.
 
+But be careful writing unit tests - don't drink the TDD kool aid. It's very easy to spend time crafting self-referential/tautological tests that don't add any value. For example, you have a function that sets `x` to `5`, and then write a test confirming that the function sets `x` to `5`. This unit test will likely never fail in the life time of the app, and therefore is just fluff. Try to write tests that test complex behaviours and algorhythms.
+
 #### Anatomy of a Jasmine test
 
 Jasmine tests are composed from suites, specs and expectations.
@@ -1283,7 +1285,36 @@ Similar to `$httpBackend.when` although it implies an expectation that the call 
 
 Upon calling `flush` the `$httpBackend` mock will immediately send all the pending fake responses. In this way async API calls can be tested synchronously.
 
-###### Example
+#### Testing controllers
+
+Well written controllers should end up being pretty slim, and confine themselves to just initialising a view's `Scope` and providing a simple API for its manipulatinon. This means they should be easily testable in isolation away from the DOM. When testing a controller it needs to be manually created along with a new `Scope` instance.
+
+```javascript
+describe("The suite",function () {
+
+    var createController;
+
+    beforeEach(inject(function ($rootScope,$controller) {
+        module("some-ctrl")
+        createController = function () {
+            return $controller("SomeCtrl",{
+                $scope: $rootScope.$new()
+            });
+        }
+    }));
+
+    it("the spec",function () {
+        var ctrl = createController();
+        expect(ctrl.$scope.foo).toEqual("bar");
+        ctrl.$scope.setFooToBaz();
+        expect(ctrl.$scope.foo).toEqual("baz");
+    });
+});
+```
+
+#### Testing HTTP services
+
+Testing HTTP services involves making use of the `$httpBackend` mock discussed above. Here's an example:
 
 ```javascript
 describe("projectsService",function () {
@@ -1292,7 +1323,7 @@ describe("projectsService",function () {
     var $httpBackend;
 
     beforeEach(function () {
-        module("project-service");
+        module("projects-service");
         inject(function ($injector) {
             projectsService = $injector.get("projectsService");
             $httpBackend = $injector.get("$httpBackend");
@@ -1318,12 +1349,109 @@ describe("projectsService",function () {
 });
 ```
 
-#### Testing controllers
-
-#### Testing views
-
-#### Testing HTTP services
-
 #### Testing directives
 
-### End-to-end ("e2e") integration tests
+Testing directives can be a bit more complex since they rely on the DOM.
+
+The basic flow for setting up such a test is:
+
+1. Compile a piece of HTML that references the directive.
+2. Bind the compiled HTML to a scope to create an isolated view in the test.
+3. Run `$scope.$digest()` on the view to force Angular to process the directive and any expressions/watchers.
+4. Run tests on the resulting HTML, i.e. see if the content has been correctly transformed or the correct CSS classes have been applied etc.
+
+```javascript
+describe("someDirective",function () {
+
+    var $compile;
+    var $rootScope;
+    var scope;
+    var view;
+
+    beforeEach(function () {
+        module("some-directive");
+        inject(function ($injector) {
+            $compile = $injector.get("$compile");
+            $rootScope = $injector.get("$rootScope");
+        });
+        scope = $rootScope.$new();
+        view = $compile("<div some-directive></div>")(scope);
+        scope.$digest();
+    });
+
+    it("add the correct contents",function () {
+        expect(view.html()).toContain("foobar");
+        expect(view.hasClass("baz")).toEqual(true);
+    });
+});
+```
+> Note: If the directive uses its own template via `templateUrl` then we also need to make sure that the `$templateCache` service has been primed with the template in question. This can be achieved by modularising your templates with a Grunt task such as `html2js`.
+
+### End-to-end ("e2e") tests
+
+The purpose of e2e tests are to test whether your controllers, services, directives and templates are all working together as expected to create a functional site when deployed on a live server with a working backend.
+
+Often the flow of such tests will simulate a typical user journey. For example:
+
+1. Navigate to "/login"
+2. Enter username "Jack" and password "12345" into the form
+3. Click the log in button
+4. Has the user been redirected to "/"?
+5. Has the backend set a valid session cookie?
+
+By running test scenarios like this automatically against a range of different browsers the need for manual testing can often be dramatically reduced down to a simple visual inspection.
+
+> Note: the term "e2e" testing is used somewhat synonymously with the terms "integration" test and "systems" test. The distinctions don't seem to be well defined and shift between different languages and development tasks.
+
+Angular e2e tests are usually written in Jasmine and use the Protractor test runner. Protractor uses WebDriverJs to remote control browsers running on Selenium.
+
+Selenium is a browser automation server. You can run it locally, or on a remote server. It can automate a variety of different browser versions and brands. SauceLabs provide a hosted Selenium service.
+
+Protractor tests are written in Jasmine, with some extra global objects on `window` to facilitate driving the remote browser.
+
+#### Protractor syntax
+
+##### `window.browser`
+
+Drives the main browser window, exposes methods such as `get` for navigating. Wraps the WebDriverJs `driver` object.
+
+##### `window.element()`
+
+A helper function for interacting with elements.
+
+##### `window.by()`
+
+A helper function for locating elements on the page, for example by CSS selector or id. Also enables locating via Angular specific syntax, such as `ng-model` attribute values etc.
+
+##### `window.protractor`
+
+The main Protractor namespace, contains helpful static variables and classes.
+
+#### Jasmine/Protractor example
+
+```javascript
+describe("Login",function () {
+
+    var username = element(by.name("username"));
+    var password = element(by.name("password"));
+    var loginBtn = element(by.css(".login-btn"));
+
+    beforeEach(function () {
+        browser.manage().deleteAllCookies();
+        browser.get("/login");
+        email.sendKeys("Jack");
+        password.sendKeys("12345");
+        loginBtn.click();
+    });
+
+    it("should redirect to home",function () {
+        expect(browser.getCurrentUrl()).toEqual("/");
+    });
+
+    it("should set the auth cookie",function () {
+        expect(browser.manage().getCookie("auth_txt")).toBeDefined();
+    });
+});
+```
+
+> Note: although the syntax looks synchronous WebDriverJs is actually adding each line to a queue of promises and executing them asynchronously.
