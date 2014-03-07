@@ -1119,7 +1119,7 @@ It is common to write Angular unit tests in Jasmine and run them via the Karma t
 
 Although Angular is well suited to testing, there are varied approaches to writing unit tests for the various different types of components. What's more, writing tests will often involve using some features of the core framework that are rarely used in your standard application code - for example, the `$injector` and `$compile` services and `Scope.$digest` etc. That said, there's no "right" way to write an Angular unit test - as long as the test runs and tests something sensible then it's doing its job.
 
-But be careful writing unit tests - don't drink the TDD kool aid. It's very easy to spend time crafting self-referential/tautological tests that don't add any value. For example, you have a function that sets `x` to `5`, and then write a test confirming that the function sets `x` to `5`. This unit test will likely never fail in the life time of the app, and therefore is just fluff. Try to write tests that test complex behaviours and algorhythms.
+But be careful writing unit tests - don't drink the TDD kool aid. It's very easy to spend time crafting self-referential/tautological tests that don't add any value. For example, you have a function that sets `x` to `5`, and then write a test confirming that the function sets `x` to `5`. This unit test will likely never fail in the life time of the app, and therefore is just fluff. Try to write tests that test complex behaviours and algorithms.
 
 #### Anatomy of a Jasmine test
 
